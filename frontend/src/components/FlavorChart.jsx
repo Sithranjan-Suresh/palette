@@ -5,6 +5,7 @@ import {
   YAxis,
   ZAxis,
   ReferenceArea,
+  Label,
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
@@ -137,7 +138,18 @@ export default function FlavorChart({
               fill="var(--neo-green)"
               fillOpacity={drinks.length > 0 ? 0.08 : 0.16}
               ifOverflow="extendDomain"
-            />
+            >
+              {targets.length <= 1 && (
+                <Label
+                  value="computed gap"
+                  position="insideTopLeft"
+                  fill="#2c6e30"
+                  fontFamily="var(--font-display)"
+                  fontWeight={700}
+                  fontSize={10}
+                />
+              )}
+            </ReferenceArea>
           ))}
 
           <Tooltip
