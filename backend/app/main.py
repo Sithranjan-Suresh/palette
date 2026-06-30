@@ -19,17 +19,26 @@ from app.validation import GenerationFailedError, generate_validated_drink
 
 app = FastAPI(title="Palette API")
 
-_default_origins = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-]
-_extra_origin = os.environ.get("FRONTEND_ORIGIN")
-allow_origins = _default_origins + ([_extra_origin] if _extra_origin else [])
+# For a hackathon with no auth and no user-sensitive data, we can safely
+# open CORS to all origins. Set ALLOW_ALL_CORS=true on Render to avoid
+# having to manually update FRONTEND_ORIGIN every time Vercel changes
+# your preview URL.
+_allow_all = os.environ.get("ALLOW_ALL_CORS", "").lower() in ("true", "1", "yes")
+
+if _allow_all:
+    allow_origins = ["*"]
+else:
+    _default_origins = [
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ]
+    _extra_origin = os.environ.get("FRONTEND_ORIGIN")
+    allow_origins = _default_origins + ([_extra_origin] if _extra_origin else [])
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allow_origins,
-    allow_credentials=True,
+    allow_credentials=not _allow_all,  # credentials not compatible with wildcard origin
     allow_methods=["*"],
     allow_headers=["*"],
 )

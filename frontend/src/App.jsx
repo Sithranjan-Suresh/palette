@@ -11,7 +11,7 @@ import KeptMenuPanel from "./components/KeptMenuPanel";
 import ToastStack from "./components/ToastStack";
 import Loader from "./components/Loader";
 import LandingPage from "./components/LandingPage";
-import { fetchBaselineMenu, fetchGapTarget, generateDrink, refreshMenu } from "./api";
+import { fetchBaselineMenu, fetchGapTarget, generateDrink, refreshMenu, pingBackend } from "./api";
 
 const LOADER_DURATION_MS = 2200;
 
@@ -90,6 +90,9 @@ function App() {
   const inFlightRef = useRef(false);
 
   useEffect(() => {
+    // Fire-and-forget ping to wake the Render free-tier backend immediately on mount
+    // so it's warm by the time the user hits "Compute drink".
+    pingBackend();
     fetchBaselineMenu()
       .then(setBaselineMenu)
       .catch(() => setError("Couldn't load the baseline menu."));
