@@ -93,6 +93,13 @@ def apply_computed_cost(drink: GeneratedDrink, available: list[AvailableIngredie
 
         total += quantity * price
 
+    # Sanity floor: a computed total below $0.50 almost always means the
+    # recipe has implausibly tiny quantities or effectively no real ingredients
+    # (e.g., 1 dash cinnamon + 1 oz water). In that case the LLM's own estimate
+    # is more credible than our arithmetic — keep it and label honestly.
+    if total < 0.50:
+        return
+
     drink.estimated_cost = round(total, 2)
     drink.cost_source = "computed"
     drink.priced_with_reference_data = used_reference
