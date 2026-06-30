@@ -90,7 +90,7 @@ export default function FlavorChart({ baselineMenu, generatedDrink, gapTarget })
           />
           <ZAxis range={[100, 100]} />
 
-          {gapTarget && !generatedDrink && (
+          {gapTarget && (
             <ReferenceArea
               x1={gapTarget.sweetness_range[0]}
               x2={gapTarget.sweetness_range[1]}
@@ -99,7 +99,7 @@ export default function FlavorChart({ baselineMenu, generatedDrink, gapTarget })
               stroke="var(--accent-acid)"
               strokeDasharray="4 3"
               fill="var(--accent-acid)"
-              fillOpacity={0.08}
+              fillOpacity={generatedDrink ? 0.05 : 0.1}
               ifOverflow="extendDomain"
             />
           )}
@@ -127,7 +127,7 @@ export default function FlavorChart({ baselineMenu, generatedDrink, gapTarget })
       <div className="instrument-legend">
         <span><i className="legend-dot legend-dot--baseline" /> existing menu</span>
         <span><i className="legend-dot legend-dot--generated" /> invented drink</span>
-        {gapTarget && !generatedDrink && (
+        {gapTarget && (
           <span><i className="legend-dot legend-dot--target" /> computed gap</span>
         )}
       </div>
