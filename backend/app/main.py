@@ -11,9 +11,9 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from app.baseline_menu import BASELINE_MENU
-from app.gap import compute_gap_target
-from app.models import GenerationRequest, MenuItem
-from app.prompting import build_generate_prompt
+from app.gap import compute_gap_target, compute_multi_gap_targets
+from app.models import GenerationRequest, MenuItem, MenuRefreshRequest
+from app.prompting import build_generate_prompt, build_menu_refresh_prompt
 from app.validation import GenerationFailedError, generate_validated_drink
 
 app = FastAPI(title="Palette API")
@@ -70,3 +70,41 @@ def generate(req: GenerationRequest):
             },
         )
     return {"drink": drink, "gap_target": target.as_dict()}
+
+
+@app.post("/api/menu-refresh")
+def menu_refresh(req: MenuRefreshRequest):
+    targets = compute_multi_gap_targets(BASELINE_MENU, req.count, req.style_constraint)
+
+    generation_req = GenerationRequest(
+        available_ingredients=req.available_ingredients,
+        out_of_stock=req.out_of_stock,
+        must_use=req.must_use,
+        style_constraint=req.style_constraint,
+    )
+
+    items = []
+    batch_so_far = []
+    failed_count = 0
+    for target in targets:
+        system_prompt, user_prompt = build_menu_refresh_prompt(
+            generation_req, BASELINE_MENU, target, batch_so_far
+        )
+        try:
+            drink = generate_validated_drink(system_prompt, user_prompt)
+        except GenerationFailedError:
+            failed_count += 1
+            continue
+        batch_so_far.append(drink)
+        items.append({"drink": drink, "gap_target": target.as_dict()})
+
+    if not items:
+        return JSONResponse(
+            status_code=502,
+            content={
+                "error": "generation_failed",
+                "detail": "Couldn't refresh the menu right now — please try again.",
+            },
+        )
+
+    return {"items": items, "failed_count": failed_count}

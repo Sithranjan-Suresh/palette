@@ -52,3 +52,28 @@ class GenerateResponse(BaseModel):
 class GenerateErrorResponse(BaseModel):
     error: str
     detail: Optional[str] = None
+
+
+class MenuRefreshRequest(BaseModel):
+    available_ingredients: list[AvailableIngredient]
+    out_of_stock: list[str] = Field(default_factory=list)
+    must_use: list[str] = Field(default_factory=list)
+    style_constraint: Optional[str] = None
+    count: int = Field(default=4, ge=2, le=6)
+
+
+class GapTargetOut(BaseModel):
+    sweetness: float
+    body: float
+    sweetness_range: list[float]
+    body_range: list[float]
+
+
+class MenuRefreshItem(BaseModel):
+    drink: GeneratedDrink
+    gap_target: GapTargetOut
+
+
+class MenuRefreshResponse(BaseModel):
+    items: list[MenuRefreshItem]
+    failed_count: int = 0

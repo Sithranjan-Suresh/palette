@@ -1,7 +1,7 @@
 import json
 
 from app.gap import GapTarget
-from app.models import GenerationRequest, MenuItem
+from app.models import GeneratedDrink, GenerationRequest, MenuItem
 
 FLAVOR_MODEL_DESCRIPTION = """
 Flavor-space model — every drink is a point in 5 dimensions, each scored 0-10:
@@ -86,6 +86,77 @@ def build_generate_prompt(
     user_prompt = "\n".join(user_lines)
 
     return system_prompt, user_prompt
+
+
+def build_menu_refresh_prompt(
+    req: GenerationRequest,
+    baseline_menu: list[MenuItem],
+    gap_target: GapTarget,
+    batch_so_far: list[GeneratedDrink],
+) -> tuple[str, str]:
+    """Same contract as a single generate call, but for one item in a coordinated
+    batch: the model is told about every drink already invented earlier in this
+    same refresh so it doesn't propose a near-duplicate."""
+    system_prompt = (
+        "You are Palette's flavor-space engine for an independent cafe, currently "
+        "proposing a coordinated batch of new drinks to refresh the menu — one drink "
+        "at a time, each filling a different deterministically-computed gap, together "
+        "spreading across the open flavor space rather than clustering."
+        + FLAVOR_MODEL_DESCRIPTION
+        + JSON_SCHEMA_DESCRIPTION
+    )
+
+    available = ", ".join(
+        f"{i.name}" + (f" (${i.cost_per_unit}/unit)" if i.cost_per_unit else "")
+        for i in req.available_ingredients
+    ) or "none specified"
+
+    gap_dict = gap_target.as_dict()
+    user_lines = [
+        f"Existing baseline menu:\n{_serialize_menu(baseline_menu)}",
+        f"\nAvailable ingredients: {available}",
+        f"Out of stock / must NOT use: {', '.join(req.out_of_stock) or 'none'}",
+        f"Must use (use at least one of these): {', '.join(req.must_use) or 'none'}",
+        f"Style constraint: {req.style_constraint or 'none'}",
+    ]
+
+    if batch_so_far:
+        batch_summary = json.dumps(
+            [
+                {"name": d.name, "flavor": d.flavor.model_dump(), "ingredients": [r.ingredient for r in d.ratios]}
+                for d in batch_so_far
+            ],
+            indent=2,
+        )
+        used_ingredient_sets = "; ".join(
+            f"{d.name} = {{{', '.join(r.ingredient for r in d.ratios)}}}" for d in batch_so_far
+        )
+        user_lines.append(
+            f"\nDrinks already proposed earlier in this same menu-refresh batch:\n{batch_summary}\n"
+            "DIVERSITY REQUIREMENT (hard constraint, not a preference): your new drink's ingredient "
+            f"set must share AT MOST ONE ingredient with any single already-proposed set above "
+            f"({used_ingredient_sets}). Two drinks built from essentially the same base "
+            "(e.g. both 'espresso + oat milk + brown sugar syrup', or both 'lemon + lemonade') are "
+            "NOT acceptable even if their names and flavor numbers differ — pick a different "
+            "available ingredient as the new drink's primary driver instead. If the available "
+            "ingredient list is too short to avoid all overlap, minimize the overlap as much as possible "
+            "and change the preparation method (e.g. steeped vs. shaken vs. layered) so the drinks are "
+            "still meaningfully different to a barista and a customer."
+        )
+
+    user_lines.append(
+        "\nA deterministic grid search has computed this drink's target gap (one of several "
+        "targets computed together so the whole batch spreads across the flavor space): "
+        f"sweetness={gap_dict['sweetness']}, body={gap_dict['body']}. "
+        f"Your invented drink's sweetness MUST fall within {gap_dict['sweetness_range']} "
+        f"and body MUST fall within {gap_dict['body_range']}. "
+        "Invent one new drink whose flavor coordinates land inside that computed window, "
+        "respecting all constraints (must avoid out-of-stock ingredients, must incorporate "
+        "at least one must-use ingredient, must satisfy the style constraint)."
+    )
+    user_lines.append("\nReturn only the JSON object described in the system prompt.")
+
+    return system_prompt, "\n".join(user_lines)
 
 
 def build_retry_prompt(user_prompt: str) -> str:

@@ -29,3 +29,17 @@ export async function generateDrink(generationRequest) {
   }
   return data.drink;
 }
+
+export async function refreshMenu(menuRefreshRequest) {
+  const res = await fetch(`${API_BASE_URL}/api/menu-refresh`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(menuRefreshRequest),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    const message = data?.detail || data?.error || "Couldn't refresh the menu, please try again.";
+    throw new Error(message);
+  }
+  return data;
+}

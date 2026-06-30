@@ -4,7 +4,8 @@ import IngredientForm from "./components/IngredientForm";
 import FlavorChart from "./components/FlavorChart";
 import RecipeCard from "./components/RecipeCard";
 import TweakControls from "./components/TweakControls";
-import { fetchBaselineMenu, fetchGapTarget, generateDrink } from "./api";
+import MenuRefreshResults from "./components/MenuRefreshResults";
+import { fetchBaselineMenu, fetchGapTarget, generateDrink, refreshMenu } from "./api";
 
 const DEBOUNCE_MS = 400;
 const GAP_DEBOUNCE_MS = 350;
@@ -16,6 +17,12 @@ function App() {
   const [gapTarget, setGapTarget] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  const [refreshItems, setRefreshItems] = useState([]);
+  const [refreshFailedCount, setRefreshFailedCount] = useState(0);
+  const [refreshCount, setRefreshCount] = useState(4);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [refreshError, setRefreshError] = useState(null);
 
   const debounceRef = useRef(null);
   const gapDebounceRef = useRef(null);
@@ -42,6 +49,8 @@ function App() {
       inFlightRef.current = true;
       setIsLoading(true);
       setError(null);
+      // a fresh single generation replaces any batch view on screen
+      setRefreshItems([]);
       try {
         const drink = await generateDrink(request);
         setGeneratedDrink(drink);
@@ -68,6 +77,25 @@ function App() {
     });
   }
 
+  async function handleRefresh(payload) {
+    setIsRefreshing(true);
+    setRefreshError(null);
+    // a menu refresh replaces any single-drink view on screen
+    setGeneratedDrink(null);
+    try {
+      const result = await refreshMenu({ ...payload, count: refreshCount });
+      setRefreshItems(result.items);
+      setRefreshFailedCount(result.failed_count || 0);
+    } catch (err) {
+      setRefreshError(err.message || "Couldn't refresh the menu, try again.");
+    } finally {
+      setIsRefreshing(false);
+    }
+  }
+
+  const refreshDrinks = refreshItems.map((item) => item.drink);
+  const refreshTargets = refreshItems.map((item) => item.gap_target);
+
   return (
     <div className="app">
       <header className="app-header">
@@ -80,8 +108,12 @@ function App() {
         <section className="input-section">
           <IngredientForm
             onSubmit={handleSubmit}
+            onRefresh={handleRefresh}
             onStyleConstraintChange={handleStyleConstraintChange}
             isLoading={isLoading}
+            isRefreshing={isRefreshing}
+            refreshCount={refreshCount}
+            onRefreshCountChange={setRefreshCount}
           />
           {generatedDrink && (
             <TweakControls onTweak={handleTweak} disabled={isLoading} />
@@ -91,12 +123,25 @@ function App() {
         <section className="results-section">
           <FlavorChart
             baselineMenu={baselineMenu}
-            generatedDrink={generatedDrink}
-            gapTarget={gapTarget}
+            generatedDrink={refreshItems.length === 0 ? generatedDrink : null}
+            gapTarget={refreshItems.length === 0 ? gapTarget : null}
+            generatedDrinks={refreshDrinks}
+            gapTargets={refreshTargets}
           />
           {isLoading && <p className="loading-indicator">Computing the flavor gap…</p>}
+          {isRefreshing && (
+            <p className="loading-indicator">
+              Computing {refreshCount} coordinated gaps and drinks…
+            </p>
+          )}
           {error && <p className="generation-error">{error}</p>}
-          <RecipeCard drink={generatedDrink} />
+          {refreshError && <p className="generation-error">{refreshError}</p>}
+
+          {refreshItems.length === 0 ? (
+            <RecipeCard drink={generatedDrink} />
+          ) : (
+            <MenuRefreshResults items={refreshItems} failedCount={refreshFailedCount} />
+          )}
         </section>
       </main>
     </div>

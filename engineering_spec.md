@@ -85,6 +85,15 @@ No persistent DB needed. In-memory / static structures:
 
 Auth strategy: none needed for the demo; LLM API key is held server-side as an environment variable, never exposed to the frontend.
 
+**POST /api/gap-target** *(added post-implementation)*
+- Body: `{ style_constraint: string | null }`
+- Response: the deterministic gap target (`backend/app/gap.py`) as `{ sweetness, body, sweetness_range, body_range }`, computed via farthest-point grid search over the baseline menu, no LLM call. Used by the frontend to show the computed target zone on the chart live, before generation.
+
+**POST /api/menu-refresh** *(added post-implementation — "seasonal menu refresh" from full_context.md's Future Expansion, pulled forward)*
+- Body: `GenerationRequest` fields plus `count: int` (2-6, default 4).
+- Response: `{ items: [{ drink, gap_target }], failed_count: int }`.
+- Server computes `count` gap targets via greedy farthest-point sampling (`compute_multi_gap_targets`) — each chosen target is folded into the point set before searching for the next, so the batch spreads across the flavor space instead of clustering on the single best gap. Drinks are generated sequentially; each prompt includes every drink already proposed earlier in the same batch under a hard diversity constraint (ingredient sets may share at most one item), so the proposed menu is a genuinely different set of drinks rather than near-duplicates at different chart coordinates. If an individual item fails validation twice, it's skipped and counted in `failed_count` rather than failing the whole batch.
+
 ## Frontend Architecture
 
 **Component hierarchy**

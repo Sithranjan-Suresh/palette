@@ -6,6 +6,11 @@ point that is farthest from every existing baseline-menu drink — the most
 under-served region of the flavor space. This number is computed here, in plain
 Python, before the LLM is ever called; the LLM is then instructed to land inside
 the computed target window rather than asked to "find the gap" itself.
+
+For the menu-refresh mode, the same farthest-point search runs iteratively: each
+newly chosen target is folded into the point set before searching for the next
+one (classic greedy farthest-point sampling), so a batch of N targets spreads
+itself across the open space instead of clustering on the single best gap.
 """
 
 import math
@@ -62,11 +67,9 @@ def _filter_by_temperature(menu: list[MenuItem], style_constraint: str | None) -
     return filtered or menu
 
 
-def compute_gap_target(menu: list[MenuItem], style_constraint: str | None = None) -> GapTarget:
-    """Farthest-point search over a coarse grid: the point in (sweetness, body)
-    space with the greatest minimum Euclidean distance to any existing drink."""
-    relevant = _filter_by_temperature(menu, style_constraint)
-
+def _farthest_point(points: list[tuple[float, float]]) -> tuple[tuple[float, float], float]:
+    """Grid search for the (sweetness, body) point with the greatest minimum
+    Euclidean distance to every point already in `points`."""
     best_point = (5.0, 5.0)
     best_min_dist = -1.0
 
@@ -75,20 +78,53 @@ def compute_gap_target(menu: list[MenuItem], style_constraint: str | None = None
         sweetness = SEARCH_MIN + i * GRID_STEP
         for j in range(steps):
             body = SEARCH_MIN + j * GRID_STEP
-            if not relevant:
+            if not points:
                 min_dist = 0.0
             else:
-                min_dist = min(
-                    math.hypot(sweetness - m.flavor.sweetness, body - m.flavor.body)
-                    for m in relevant
-                )
+                min_dist = min(math.hypot(sweetness - px, body - py) for px, py in points)
             if min_dist > best_min_dist:
                 best_min_dist = min_dist
                 best_point = (sweetness, body)
 
+    return best_point, best_min_dist
+
+
+def compute_gap_target(menu: list[MenuItem], style_constraint: str | None = None) -> GapTarget:
+    """Farthest-point search over a coarse grid: the single point in
+    (sweetness, body) space with the greatest minimum distance to any existing drink."""
+    relevant = _filter_by_temperature(menu, style_constraint)
+    points = [(m.flavor.sweetness, m.flavor.body) for m in relevant]
+    (sweetness, body), min_dist = _farthest_point(points)
+
     return GapTarget(
-        sweetness=best_point[0],
-        body=best_point[1],
-        min_distance=round(best_min_dist, 2),
+        sweetness=sweetness,
+        body=body,
+        min_distance=round(min_dist, 2),
         considered=len(relevant),
     )
+
+
+def compute_multi_gap_targets(
+    menu: list[MenuItem], count: int, style_constraint: str | None = None
+) -> list[GapTarget]:
+    """Greedy farthest-point sampling: pick `count` targets that jointly spread
+    across the open space, by folding each chosen target into the point set
+    before searching for the next one."""
+    relevant = _filter_by_temperature(menu, style_constraint)
+    points = [(m.flavor.sweetness, m.flavor.body) for m in relevant]
+
+    targets: list[GapTarget] = []
+    working_points = list(points)
+    for _ in range(max(1, count)):
+        (sweetness, body), min_dist = _farthest_point(working_points)
+        targets.append(
+            GapTarget(
+                sweetness=sweetness,
+                body=body,
+                min_distance=round(min_dist, 2),
+                considered=len(relevant),
+            )
+        )
+        working_points.append((sweetness, body))
+
+    return targets

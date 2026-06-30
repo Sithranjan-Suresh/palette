@@ -9,15 +9,19 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-function GeneratedDot(props) {
-  const { cx, cy } = props;
-  if (cx == null || cy == null) return null;
-  return (
-    <g>
-      <circle cx={cx} cy={cy} r={11} fill="var(--accent-brew-soft)" className="generated-halo" />
-      <circle cx={cx} cy={cy} r={4.5} fill="var(--accent-brew)" stroke="var(--paper)" strokeWidth={1.5} />
-    </g>
-  );
+const DRINK_COLORS = ["#e0651c", "#d4972b", "#c2483b", "#9b6b3c", "#b8862e", "#a14a3e"];
+
+function makeGeneratedDot(color) {
+  return function GeneratedDot(props) {
+    const { cx, cy } = props;
+    if (cx == null || cy == null) return null;
+    return (
+      <g>
+        <circle cx={cx} cy={cy} r={11} fill={color} opacity={0.18} className="generated-halo" />
+        <circle cx={cx} cy={cy} r={4.5} fill={color} stroke="var(--paper)" strokeWidth={1.5} />
+      </g>
+    );
+  };
 }
 
 function BaselineDot(props) {
@@ -26,28 +30,38 @@ function BaselineDot(props) {
   return <circle cx={cx} cy={cy} r={4} fill="var(--ink-dim)" />;
 }
 
-export default function FlavorChart({ baselineMenu, generatedDrink, gapTarget }) {
+export default function FlavorChart({
+  baselineMenu,
+  generatedDrink,
+  gapTarget,
+  generatedDrinks,
+  gapTargets,
+}) {
+  const drinks = generatedDrinks && generatedDrinks.length > 0
+    ? generatedDrinks
+    : generatedDrink
+      ? [generatedDrink]
+      : [];
+
+  const targets = gapTargets && gapTargets.length > 0
+    ? gapTargets
+    : gapTarget
+      ? [gapTarget]
+      : [];
+
+  const multiMode = drinks.length > 1;
+
   const baselinePoints = baselineMenu.map((item) => ({
     name: item.name,
     sweetness: item.flavor.sweetness,
     body: item.flavor.body,
   }));
 
-  const generatedPoint = generatedDrink
-    ? [
-        {
-          name: generatedDrink.name,
-          sweetness: generatedDrink.flavor.sweetness,
-          body: generatedDrink.flavor.body,
-        },
-      ]
-    : [];
-
   return (
     <div className="instrument-panel">
       <div className="instrument-header">
         <p className="panel-eyebrow">Flavor map — sweetness × body</p>
-        <h2>Live readout</h2>
+        <h2>{multiMode ? "Live readout — menu refresh" : "Live readout"}</h2>
       </div>
 
       <ResponsiveContainer width="100%" height={380}>
@@ -90,19 +104,20 @@ export default function FlavorChart({ baselineMenu, generatedDrink, gapTarget })
           />
           <ZAxis range={[100, 100]} />
 
-          {gapTarget && (
+          {targets.map((t, i) => (
             <ReferenceArea
-              x1={gapTarget.sweetness_range[0]}
-              x2={gapTarget.sweetness_range[1]}
-              y1={gapTarget.body_range[0]}
-              y2={gapTarget.body_range[1]}
+              key={i}
+              x1={t.sweetness_range[0]}
+              x2={t.sweetness_range[1]}
+              y1={t.body_range[0]}
+              y2={t.body_range[1]}
               stroke="var(--accent-acid)"
               strokeDasharray="4 3"
               fill="var(--accent-acid)"
-              fillOpacity={generatedDrink ? 0.05 : 0.1}
+              fillOpacity={drinks.length > 0 ? 0.05 : 0.1}
               ifOverflow="extendDomain"
             />
-          )}
+          ))}
 
           <Tooltip
             cursor={{ strokeDasharray: "3 3", stroke: "var(--line)" }}
@@ -118,17 +133,31 @@ export default function FlavorChart({ baselineMenu, generatedDrink, gapTarget })
           />
 
           <Scatter name="Existing menu" data={baselinePoints} shape={<BaselineDot />} />
-          {generatedPoint.length > 0 && (
-            <Scatter name="Invented drink" data={generatedPoint} shape={<GeneratedDot />} />
-          )}
+          {drinks.map((d, i) => (
+            <Scatter
+              key={d.name + i}
+              name={d.name}
+              data={[{ name: d.name, sweetness: d.flavor.sweetness, body: d.flavor.body }]}
+              shape={makeGeneratedDot(DRINK_COLORS[i % DRINK_COLORS.length])}
+            />
+          ))}
         </ScatterChart>
       </ResponsiveContainer>
 
       <div className="instrument-legend">
         <span><i className="legend-dot legend-dot--baseline" /> existing menu</span>
-        <span><i className="legend-dot legend-dot--generated" /> invented drink</span>
-        {gapTarget && (
-          <span><i className="legend-dot legend-dot--target" /> computed gap</span>
+        {multiMode ? (
+          drinks.map((d, i) => (
+            <span key={d.name + i}>
+              <i className="legend-dot" style={{ background: DRINK_COLORS[i % DRINK_COLORS.length] }} />
+              {d.name}
+            </span>
+          ))
+        ) : (
+          <span><i className="legend-dot legend-dot--generated" /> invented drink</span>
+        )}
+        {targets.length > 0 && (
+          <span><i className="legend-dot legend-dot--target" /> computed gap{targets.length > 1 ? "s" : ""}</span>
         )}
       </div>
     </div>

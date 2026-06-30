@@ -55,6 +55,10 @@ npm run dev
 
 Open the printed local URL. Enter at least two ingredients, optionally flag what's out of stock, what must be used, and a style constraint, then compute a drink. Use the tweak pills to regenerate in place.
 
+## Menu refresh (batch mode)
+
+Beyond inventing one drink, Palette can propose a coordinated set of 2-6 drinks that refresh the whole menu at once. This isn't N independent calls — `backend/app/gap.py`'s `compute_multi_gap_targets` runs greedy farthest-point sampling: each chosen gap target is folded into the point set before searching for the next one, so the targets jointly spread across the open flavor space instead of clustering on the single best gap. Each drink is then generated in sequence, with every prior drink in the batch passed into the next prompt under a hard diversity constraint (ingredient sets may overlap by at most one item), so the proposed menu doesn't just hit different chart coordinates — it's actually a different set of drinks, not the same drink renamed four times.
+
 ## Project docs
 
 - [`full_context.md`](full_context.md) — vision, problem, target user

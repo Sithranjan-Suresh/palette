@@ -15,3 +15,20 @@
 - Full generate→tweak chain re-verified after redesign: "more body" tweak increased body 8.0→9.0 (oat milk 4oz→6oz), name/identity preserved, gap_target consistent across both calls, latency ~1-1.8s.
 - Frontend redesign (Fraunces/Inter/IBM Plex Mono, instrument-style flavor chart with live gap crosshair, paper recipe ticket, tag-chip inputs): `npm run build` succeeds, dev server transforms all new components (TagInput.jsx, redesigned FlavorChart/RecipeCard/IngredientForm/TweakControls) without error, page title/favicon confirmed updated to "Palette".
 - **Limitation:** Chrome browser automation was unavailable in this environment, so the redesign was verified by build success + manual code review, not a visual click-through or screenshot. Recommend a quick visual pass before the actual demo.
+
+## Live browser verification (via mcp__Claude_Preview, not just code review)
+
+Actually drove the running app through `.claude/launch.json` + the preview tool — filled the real form, clicked through, read the live DOM — instead of relying on code review alone.
+
+- Confirmed live in-browser: fonts load correctly, instrument chart and paper recipe ticket render exactly as designed, tag-chip inputs work, mobile breakpoint (375px) has no horizontal overflow.
+- **Bug found and fixed live:** the gap-target crosshair was disappearing immediately after generation (`!generatedDrink` condition), meaning the proof moment — the generated point landing inside the dashed computed-gap zone — never actually appeared on screen. Fixed in `FlavorChart.jsx`; re-verified the point now visibly lands inside the zone after both fresh generation and tweaks.
+- **Tooling note:** `preview_click()` did not reliably dispatch real `submit`/`click` events against `<button type="submit">` or plain buttons in this headless context — confirmed via `performance.getEntriesByType('resource')` showing zero `/api/generate` calls despite "successful" clicks. Worked around with `form.requestSubmit()` / direct `.click()` calls. This is a test-harness artifact, not an app bug — a real mouse click in a real browser fires normally.
+- Full live demo_script.md scenario re-run end to end in-browser: generate → tweak ("more body") → point moved, radar reshaped, oat milk 4oz→5oz, cost $2.50→$2.75, name preserved. Validation error state for <2 ingredients confirmed rendering correctly in the new UI.
+
+## Menu refresh (batch mode) verification
+
+- `compute_multi_gap_targets` (greedy farthest-point sampling) confirmed via curl to produce well-spread, non-clustered targets, e.g. (4.5,9), (9,1), (9,9), (1,1) for a 4-item batch — not collapsed to one corner.
+- First version of the diversity instruction was insufficient: with a 5-ingredient input, produced two pairs of near-duplicate drinks (e.g. "Cinnamon Oat Crunch" and "Espresso Brown Sugar Delight" sharing 3 of 4 ingredients) despite distinct names and chart positions.
+- Strengthened the prompt to a hard "at most one shared ingredient per pair" constraint with explicit ingredient sets listed. Re-tested with a 5-ingredient input (still overlapped on the unavoidable espresso-based hot pair — a real combinatorial floor, not a prompt bug, when too few ingredients are given for the requested batch size) and a realistic 10-ingredient café input (oat chai latte / honey-mint / matcha cream / cold-brew lemon — fully distinct, 2 hot + 2 iced as requested, costs $2.25-$4.25, all real units), confirmed live through the browser via direct DOM inspection of the rendered cards.
+- 4-item batch generation latency: ~4.7-5.6s total (4 sequential Groq calls, each carrying the growing batch context) — acceptable for a deliberate "refresh" action, distinct from the sub-2s single-generate/tweak path.
+- Partial-failure resilience: `/api/menu-refresh` returns whatever items succeeded plus a `failed_count` rather than failing the whole batch if one generation can't be validated after retry — not yet exercised against an actual mid-batch failure (would require forcing a Groq error), but the code path returns the typed response either way.
