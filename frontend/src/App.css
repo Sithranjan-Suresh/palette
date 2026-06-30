@@ -240,6 +240,17 @@ main {
   color: #ffb380;
 }
 
+.print-btn {
+  margin-left: auto;
+  padding: 4px 10px;
+  font-size: 0.8rem;
+  border-radius: 6px;
+  border: 1px solid #444;
+  background: #222;
+  color: #ccc;
+  cursor: pointer;
+}
+
 .tasting-note {
   color: #ccc;
   font-style: italic;
@@ -290,4 +301,26 @@ main {
   margin-top: 14px;
   font-size: 0.9rem;
   color: #ccc;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .recipe-card,
+  .recipe-card * {
+    visibility: visible;
+  }
+  .recipe-card {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    border: none;
+    background: white;
+    color: black;
+  }
+  .recipe-radar {
+    display: none;
+  }
 }

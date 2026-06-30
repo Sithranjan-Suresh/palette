@@ -35,6 +35,9 @@ export default function RecipeCard({ drink }) {
         <span className={`temp-badge temp-badge--${drink.flavor.temperature}`}>
           {drink.flavor.temperature === "iced" ? "Iced" : "Hot"}
         </span>
+        <button type="button" className="print-btn" onClick={() => window.print()}>
+          Print
+        </button>
       </div>
 
       <p className="tasting-note">{truncate(drink.tasting_note, 220)}</p>
