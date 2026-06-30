@@ -2,6 +2,12 @@ import os
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+
+from app.baseline_menu import BASELINE_MENU
+from app.models import GenerationRequest, MenuItem
+from app.prompting import build_generate_prompt
+from app.validation import GenerationFailedError, generate_validated_drink
 
 app = FastAPI(title="Palette API")
 
@@ -24,3 +30,25 @@ app.add_middleware(
 @app.get("/")
 def root():
     return {"status": "ok", "service": "palette-api"}
+
+
+@app.get("/api/baseline-menu")
+@app.post("/api/baseline-menu")
+def baseline_menu() -> list[MenuItem]:
+    return BASELINE_MENU
+
+
+@app.post("/api/generate")
+def generate(req: GenerationRequest):
+    system_prompt, user_prompt = build_generate_prompt(req, BASELINE_MENU)
+    try:
+        drink = generate_validated_drink(system_prompt, user_prompt)
+    except GenerationFailedError:
+        return JSONResponse(
+            status_code=502,
+            content={
+                "error": "generation_failed",
+                "detail": "Couldn't generate a drink right now — please try again.",
+            },
+        )
+    return {"drink": drink}
