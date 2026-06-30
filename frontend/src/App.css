@@ -351,6 +351,103 @@ main {
   margin-bottom: 3px;
 }
 
+.refresh-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.keep-btn {
+  padding: 5px 10px;
+  border-radius: 3px;
+  border: 1px solid var(--accent-acid);
+  background: transparent;
+  color: #5c6e1f;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.keep-btn:hover:not(:disabled) {
+  background: var(--accent-acid);
+  color: var(--paper);
+}
+
+.keep-btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+  border-style: dashed;
+}
+
+.keep-btn--small {
+  padding: 4px 8px;
+  font-size: 0.65rem;
+}
+
+.constraint-warning {
+  background: rgba(224, 98, 98, 0.1);
+  border: 1px solid rgba(224, 98, 98, 0.35);
+  border-radius: 3px;
+  padding: 8px 10px;
+  margin: 10px 0;
+}
+
+.constraint-warning p {
+  margin: 0;
+  font-size: 0.78rem;
+  color: #9a3f3f;
+  font-family: var(--font-mono);
+}
+
+.constraint-warning--compact {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 6px 0;
+  color: #9a3f3f;
+  font-size: 0.72rem;
+  font-family: var(--font-mono);
+}
+
+.kept-menu-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.kept-menu-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 3px;
+  background: var(--bg-panel-raised);
+  border: 1px solid var(--line);
+  font-size: 0.85rem;
+}
+
+.kept-menu-list li button {
+  background: none;
+  border: none;
+  color: var(--ink-faint);
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.kept-menu-list li button:hover {
+  color: var(--danger);
+}
+
 /* ---------- Tag input ---------- */
 
 .tag-input {
@@ -518,6 +615,11 @@ main {
   background: var(--accent-acid);
 }
 
+.legend-dot--kept {
+  background: none;
+  border: 1.5px solid var(--accent-acid);
+}
+
 .loading-indicator {
   font-family: var(--font-mono);
   color: var(--accent-brew);
@@ -553,6 +655,11 @@ main {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 6px;
+}
+
+.recipe-ticket-actions {
+  display: flex;
+  gap: 8px;
 }
 
 .print-btn {

@@ -12,7 +12,12 @@ function truncate(text, max) {
   return text.length > max ? text.slice(0, max - 1) + "…" : text;
 }
 
-export default function RecipeCard({ drink }) {
+function costBadgeLabel(drink) {
+  if (drink.cost_source !== "computed") return "no prices entered";
+  return drink.priced_with_reference_data ? "incl. reference prices" : "from your prices";
+}
+
+export default function RecipeCard({ drink, onKeep, isKept }) {
   if (!drink) {
     return (
       <div className="recipe-ticket recipe-ticket--empty">
@@ -33,9 +38,21 @@ export default function RecipeCard({ drink }) {
     <div className="recipe-ticket">
       <div className="recipe-ticket-header">
         <p className="panel-eyebrow panel-eyebrow--paper">Recipe — 03</p>
-        <button type="button" className="print-btn" onClick={() => window.print()}>
-          Print ticket
-        </button>
+        <div className="recipe-ticket-actions">
+          {onKeep && (
+            <button
+              type="button"
+              className="keep-btn"
+              disabled={isKept}
+              onClick={() => onKeep(drink)}
+            >
+              {isKept ? "On your menu" : "+ Add to menu"}
+            </button>
+          )}
+          <button type="button" className="print-btn" onClick={() => window.print()}>
+            Print ticket
+          </button>
+        </div>
       </div>
 
       <div className="recipe-title-row">
@@ -46,6 +63,14 @@ export default function RecipeCard({ drink }) {
       </div>
 
       <p className="tasting-note">{truncate(drink.tasting_note, 220)}</p>
+
+      {drink.constraint_warnings && drink.constraint_warnings.length > 0 && (
+        <div className="constraint-warning">
+          {drink.constraint_warnings.map((w, i) => (
+            <p key={i}>⚠ {w}</p>
+          ))}
+        </div>
+      )}
 
       <div className="recipe-ticket-body">
         <div className="recipe-ratios">
@@ -69,7 +94,7 @@ export default function RecipeCard({ drink }) {
             {drink.cost_source === "computed" ? "Computed cost" : "Estimated cost"}{" "}
             <strong>${drink.estimated_cost.toFixed(2)}</strong>
             <span className={`cost-badge cost-badge--${drink.cost_source}`}>
-              {drink.cost_source === "computed" ? "from your prices" : "no prices entered"}
+              {costBadgeLabel(drink)}
             </span>
           </p>
         </div>

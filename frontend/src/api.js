@@ -6,11 +6,11 @@ export async function fetchBaselineMenu() {
   return res.json();
 }
 
-export async function fetchGapTarget(styleConstraint) {
+export async function fetchGapTarget(styleConstraint, extraMenu = []) {
   const res = await fetch(`${API_BASE_URL}/api/gap-target`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ style_constraint: styleConstraint || null }),
+    body: JSON.stringify({ style_constraint: styleConstraint || null, extra_menu: extraMenu }),
   });
   if (!res.ok) throw new Error("Failed to compute gap target");
   return res.json();

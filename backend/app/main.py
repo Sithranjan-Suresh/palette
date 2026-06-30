@@ -48,20 +48,25 @@ def baseline_menu() -> list[MenuItem]:
 
 class GapTargetRequest(BaseModel):
     style_constraint: str | None = None
+    extra_menu: list[MenuItem] = []
 
 
 @app.post("/api/gap-target")
 def gap_target(req: GapTargetRequest):
-    target = compute_gap_target(BASELINE_MENU, req.style_constraint)
+    combined_menu = BASELINE_MENU + req.extra_menu
+    target = compute_gap_target(combined_menu, req.style_constraint)
     return target.as_dict()
 
 
 @app.post("/api/generate")
 def generate(req: GenerationRequest):
-    target = compute_gap_target(BASELINE_MENU, req.style_constraint)
-    system_prompt, user_prompt = build_generate_prompt(req, BASELINE_MENU, target)
+    combined_menu = BASELINE_MENU + req.extra_menu
+    target = compute_gap_target(combined_menu, req.style_constraint)
+    system_prompt, user_prompt = build_generate_prompt(req, combined_menu, target)
     try:
-        drink = generate_validated_drink(system_prompt, user_prompt)
+        drink = generate_validated_drink(
+            system_prompt, user_prompt, req.out_of_stock, req.must_use
+        )
     except GenerationFailedError:
         return JSONResponse(
             status_code=502,
@@ -76,7 +81,8 @@ def generate(req: GenerationRequest):
 
 @app.post("/api/menu-refresh")
 def menu_refresh(req: MenuRefreshRequest):
-    targets = compute_multi_gap_targets(BASELINE_MENU, req.count, req.style_constraint)
+    combined_menu = BASELINE_MENU + req.extra_menu
+    targets = compute_multi_gap_targets(combined_menu, req.count, req.style_constraint)
 
     generation_req = GenerationRequest(
         available_ingredients=req.available_ingredients,
@@ -90,10 +96,12 @@ def menu_refresh(req: MenuRefreshRequest):
     failed_count = 0
     for target in targets:
         system_prompt, user_prompt = build_menu_refresh_prompt(
-            generation_req, BASELINE_MENU, target, batch_so_far
+            generation_req, combined_menu, target, batch_so_far
         )
         try:
-            drink = generate_validated_drink(system_prompt, user_prompt)
+            drink = generate_validated_drink(
+                system_prompt, user_prompt, req.out_of_stock, req.must_use
+            )
         except GenerationFailedError:
             failed_count += 1
             continue

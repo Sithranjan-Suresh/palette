@@ -5,7 +5,7 @@ function truncate(text, max) {
   return text.length > max ? text.slice(0, max - 1) + "…" : text;
 }
 
-export default function MenuRefreshResults({ items, failedCount }) {
+export default function MenuRefreshResults({ items, failedCount, onKeep, keptNames }) {
   if (!items || items.length === 0) return null;
 
   return (
@@ -23,6 +23,7 @@ export default function MenuRefreshResults({ items, failedCount }) {
         {items.map((item, i) => {
           const drink = item.drink;
           const color = DRINK_COLORS[i % DRINK_COLORS.length];
+          const isKept = keptNames ? keptNames.has(drink.name) : false;
           return (
             <div className="refresh-card" key={drink.name + i} style={{ borderTopColor: color }}>
               <div className="refresh-card-header">
@@ -32,6 +33,13 @@ export default function MenuRefreshResults({ items, failedCount }) {
                 </span>
               </div>
               <p className="refresh-tasting-note">{truncate(drink.tasting_note, 110)}</p>
+
+              {drink.constraint_warnings && drink.constraint_warnings.length > 0 && (
+                <p className="constraint-warning constraint-warning--compact">
+                  ⚠ {drink.constraint_warnings[0]}
+                </p>
+              )}
+
               <ul className="refresh-ratios">
                 {drink.ratios.map((r, j) => (
                   <li key={j}>
@@ -39,12 +47,26 @@ export default function MenuRefreshResults({ items, failedCount }) {
                   </li>
                 ))}
               </ul>
-              <p className="refresh-cost">
-                ${drink.estimated_cost.toFixed(2)}
-                <span className={`cost-badge cost-badge--${drink.cost_source}`}>
-                  {drink.cost_source === "computed" ? "computed" : "estimated"}
-                </span>
-              </p>
+              <div className="refresh-card-footer">
+                <p className="refresh-cost">
+                  ${drink.estimated_cost.toFixed(2)}
+                  <span className={`cost-badge cost-badge--${drink.cost_source}`}>
+                    {drink.cost_source === "computed"
+                      ? drink.priced_with_reference_data ? "ref. priced" : "computed"
+                      : "estimated"}
+                  </span>
+                </p>
+                {onKeep && (
+                  <button
+                    type="button"
+                    className="keep-btn keep-btn--small"
+                    disabled={isKept}
+                    onClick={() => onKeep(drink)}
+                  >
+                    {isKept ? "Kept" : "+ Keep"}
+                  </button>
+                )}
+              </div>
             </div>
           );
         })}

@@ -159,12 +159,16 @@ def build_menu_refresh_prompt(
     return system_prompt, "\n".join(user_lines)
 
 
-def build_retry_prompt(user_prompt: str) -> str:
+def build_correction_prompt(user_prompt: str, issues: list[str]) -> str:
+    """General retry prompt: lists every concrete, programmatically-detected
+    problem with the previous response (bad JSON, bad units, or a violated
+    out-of-stock/must-use constraint) and asks for a corrected response."""
+    issue_lines = "\n".join(f"- {issue}" for issue in issues)
     return (
         user_prompt
-        + "\n\nYour previous response was not valid JSON matching the required schema, or "
-        "used non-physical units (like 'units' or 'parts') in a ratio amount. "
-        "Return only valid JSON now, with no markdown fences and no commentary, and make sure "
-        "every ratios[].amount uses a real bar/kitchen unit (oz, ml, pump, tsp, tbsp, shot, dash, "
-        "or a whole count like '1 wedge')."
+        + "\n\nYour previous response had the following problem(s), detected by code, not a guess:\n"
+        f"{issue_lines}\n\n"
+        "Return a corrected JSON object now that fixes every issue above, with no markdown "
+        "fences and no commentary outside the JSON. Every ratios[].amount must use a real "
+        "bar/kitchen unit (oz, ml, pump, tsp, tbsp, shot, dash, or a whole count like '1 wedge')."
     )

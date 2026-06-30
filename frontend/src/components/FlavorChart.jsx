@@ -30,8 +30,20 @@ function BaselineDot(props) {
   return <circle cx={cx} cy={cy} r={4} fill="var(--ink-dim)" />;
 }
 
+function KeptDot(props) {
+  const { cx, cy } = props;
+  if (cx == null || cy == null) return null;
+  return (
+    <g>
+      <circle cx={cx} cy={cy} r={5} fill="none" stroke="var(--accent-acid)" strokeWidth={1.5} />
+      <circle cx={cx} cy={cy} r={1.5} fill="var(--accent-acid)" />
+    </g>
+  );
+}
+
 export default function FlavorChart({
   baselineMenu,
+  keptMenu,
   generatedDrink,
   gapTarget,
   generatedDrinks,
@@ -52,6 +64,12 @@ export default function FlavorChart({
   const multiMode = drinks.length > 1;
 
   const baselinePoints = baselineMenu.map((item) => ({
+    name: item.name,
+    sweetness: item.flavor.sweetness,
+    body: item.flavor.body,
+  }));
+
+  const keptPoints = (keptMenu || []).map((item) => ({
     name: item.name,
     sweetness: item.flavor.sweetness,
     body: item.flavor.body,
@@ -133,6 +151,9 @@ export default function FlavorChart({
           />
 
           <Scatter name="Existing menu" data={baselinePoints} shape={<BaselineDot />} />
+          {keptPoints.length > 0 && (
+            <Scatter name="Your menu" data={keptPoints} shape={<KeptDot />} />
+          )}
           {drinks.map((d, i) => (
             <Scatter
               key={d.name + i}
@@ -146,6 +167,9 @@ export default function FlavorChart({
 
       <div className="instrument-legend">
         <span><i className="legend-dot legend-dot--baseline" /> existing menu</span>
+        {keptPoints.length > 0 && (
+          <span><i className="legend-dot legend-dot--kept" /> your menu</span>
+        )}
         {multiMode ? (
           drinks.map((d, i) => (
             <span key={d.name + i}>

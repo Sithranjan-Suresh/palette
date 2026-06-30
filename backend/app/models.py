@@ -29,9 +29,17 @@ class GeneratedDrink(BaseModel):
     steps: list[str]
     tasting_note: str
     estimated_cost: float
-    # Set server-side after generation, never by the LLM (see app/costing.py).
-    # "computed" only when every ratio ingredient had a known real-world price.
+    # Everything below is set server-side after generation, never by the LLM.
+    # "computed" only when every ratio ingredient had a known real-world price
+    # (see app/costing.py).
     cost_source: Literal["computed", "estimated"] = "estimated"
+    # True when at least one ingredient's price came from the bundled
+    # reference price table rather than a price the user actually entered.
+    priced_with_reference_data: bool = False
+    # Populated by app/validation.py's deterministic constraint checker
+    # (not the LLM) when the recipe still violates out-of-stock/must-use
+    # constraints after one corrective retry. Empty when fully compliant.
+    constraint_warnings: list[str] = Field(default_factory=list)
 
 
 class AvailableIngredient(BaseModel):
@@ -46,6 +54,10 @@ class GenerationRequest(BaseModel):
     style_constraint: Optional[str] = None
     tweak: Optional[str] = None
     previous_drink: Optional[GeneratedDrink] = None
+    # Drinks the user has kept from earlier in this session — folded into the
+    # baseline menu for gap computation and prompt context, so the menu the
+    # system reasons about actually grows instead of resetting every call.
+    extra_menu: list[MenuItem] = Field(default_factory=list)
 
 
 class GenerateResponse(BaseModel):
@@ -63,6 +75,7 @@ class MenuRefreshRequest(BaseModel):
     must_use: list[str] = Field(default_factory=list)
     style_constraint: Optional[str] = None
     count: int = Field(default=4, ge=2, le=6)
+    extra_menu: list[MenuItem] = Field(default_factory=list)
 
 
 class GapTargetOut(BaseModel):

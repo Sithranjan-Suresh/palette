@@ -2,18 +2,22 @@
 
 The LLM always returns its own guess at `estimated_cost` as part of the JSON
 contract (engineering_spec.md requires the field to always be present). But a
-guess is exactly what Palette's whole pitch argues against. When the user has
-actually entered real $/unit prices for their ingredients, we throw the LLM's
-number away and compute the true cost here instead: parse the leading quantity
-out of each ratio's amount string (e.g. "1.5 pumps" -> 1.5) and multiply by
-that ingredient's entered price. Water and ice are treated as free. The result
-is only labeled "computed" when every ingredient in the recipe was priceable
-this way — a partially-priced recipe keeps the LLM's estimate rather than
-silently mixing real and guessed numbers into one misleading total.
+guess is exactly what Palette's whole pitch argues against. When a real price
+is available for every ingredient in the recipe — either one the user typed
+in, or a fallback from the bundled reference price table in
+app/ingredient_prices.py — we throw the LLM's number away and compute the
+true cost here instead: parse the leading quantity out of each ratio's
+amount string (e.g. "1.5 pumps" -> 1.5) and multiply by that ingredient's
+price. User-entered prices always take priority over the reference table.
+Water and ice are free. The result is only labeled "computed" when every
+ingredient in the recipe was priceable this way — a partially-priced recipe
+keeps the LLM's estimate rather than silently mixing real and guessed
+numbers into one misleading total.
 """
 
 import re
 
+from app.ingredient_prices import REFERENCE_PRICES
 from app.models import AvailableIngredient, GeneratedDrink
 
 FREE_INGREDIENTS = {"water", "ice"}
@@ -42,31 +46,53 @@ def _parse_quantity(amount: str) -> float | None:
         return None
 
 
-def _find_price(ingredient_name: str, available: list[AvailableIngredient]) -> float | None:
+def _find_user_price(ingredient_name: str, available: list[AvailableIngredient]) -> float | None:
     name = ingredient_name.strip().lower()
     for item in available:
         item_name = item.name.strip().lower()
-        if item_name == name or item_name in name or name in item_name:
+        if item.cost_per_unit is not None and (
+            item_name == name or item_name in name or name in item_name
+        ):
             return item.cost_per_unit
     return None
 
 
+def _find_reference_price(ingredient_name: str) -> float | None:
+    name = ingredient_name.strip().lower()
+    if name in REFERENCE_PRICES:
+        return REFERENCE_PRICES[name]
+    for ref_name, price in REFERENCE_PRICES.items():
+        if ref_name in name or name in ref_name:
+            return price
+    return None
+
+
 def apply_computed_cost(drink: GeneratedDrink, available: list[AvailableIngredient]) -> None:
-    """Mutates drink.estimated_cost / drink.cost_source in place when every
-    ratio ingredient is priceable from the user's entered costs."""
+    """Mutates drink.estimated_cost / drink.cost_source / drink.priced_with_reference_data
+    in place when every ratio ingredient is priceable (user price or reference fallback)."""
     total = 0.0
+    used_reference = False
+
     for ratio in drink.ratios:
         name = ratio.ingredient.strip().lower()
         if name in FREE_INGREDIENTS:
             continue
 
         quantity = _parse_quantity(ratio.amount)
-        price = _find_price(ratio.ingredient, available)
-
-        if quantity is None or price is None:
+        if quantity is None:
             return  # can't fully price this recipe — leave the LLM's estimate as-is
+
+        price = _find_user_price(ratio.ingredient, available)
+        if price is None:
+            price = _find_reference_price(ratio.ingredient)
+            if price is not None:
+                used_reference = True
+
+        if price is None:
+            return  # no price from any source — leave the LLM's estimate as-is
 
         total += quantity * price
 
     drink.estimated_cost = round(total, 2)
     drink.cost_source = "computed"
+    drink.priced_with_reference_data = used_reference
