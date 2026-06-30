@@ -1,156 +1,278 @@
-import { motion } from "framer-motion";
-import { ArrowRight, Coffee, Calculator, Shuffle, Sparkles, IceCreamCone, Lightbulb } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { motion, useScroll, useTransform, useSpring } from "framer-motion";
+import { ArrowRight, Coffee, Calculator, Shuffle, Sparkles, IceCreamCone, Lightbulb, ChevronDown } from "lucide-react";
 
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: { opacity: 1, transition: { staggerChildren: 0.18, delayChildren: 0.1 } },
-};
+/* ── Scroll parallax setup ── */
+function useParallax(scrollYProgress, output) {
+  const raw = useTransform(scrollYProgress, [0, 1], output);
+  return useSpring(raw, { stiffness: 80, damping: 20, restDelta: 0.001 });
+}
 
-const itemVariants = {
-  hidden: { y: 28, opacity: 0 },
-  visible: { y: 0, opacity: 1, transition: { type: "spring", stiffness: 110, damping: 12 } },
-};
+/* ── Counting stat number ── */
+function CountUp({ target, suffix = "" }) {
+  const [count, setCount] = useState(0);
+  const ref = useRef(null);
+  const started = useRef(false);
+  useEffect(() => {
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting && !started.current) {
+        started.current = true;
+        const isDecimal = String(target).includes(".");
+        const duration = 1000;
+        const steps = 40;
+        const step = duration / steps;
+        let current = 0;
+        const timer = setInterval(() => {
+          current += 1;
+          const val = Math.min(
+            isDecimal ? parseFloat((target * current / steps).toFixed(1)) : Math.round(target * current / steps),
+            target
+          );
+          setCount(val);
+          if (current >= steps) clearInterval(timer);
+        }, step);
+      }
+    }, { threshold: 0.5 });
+    if (ref.current) observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, [target]);
+  return <span ref={ref}>{count}{suffix}</span>;
+}
 
-const floatLoop = (delay) => ({
-  y: [-10, 10, -10],
-  transition: { duration: 3.2, repeat: Infinity, repeatType: "reverse", ease: "easeInOut", delay },
-});
-
+/* ── Hero container for useScroll ── */
 const FEATURES = [
   {
     color: "blue",
     icon: <Calculator size={28} />,
     title: "Real Computed Gaps",
     desc: "A deterministic grid search finds the most under-served point in flavor space before the AI is ever called — and you watch the point land inside it.",
-    rotate: "rotate-2",
+    initRotate: -3,
   },
   {
     color: "pink",
     icon: <Shuffle size={28} />,
     title: "Coordinated Batches",
     desc: "Refresh the whole menu at once — a greedy farthest-point search spreads multiple drinks across the open space instead of clustering.",
-    rotate: "-rotate-2",
+    initRotate: 0,
   },
   {
     color: "yellow",
     icon: <Coffee size={28} />,
     title: "Honest Costing",
     desc: "Real arithmetic from your entered prices, or a bundled reference table — never a guess dressed up as a computation.",
-    rotate: "rotate-2",
+    initRotate: 3,
   },
 ];
 
+const MARQUEE_TEXT = "Computed, not retrieved  •  Real flavor math  •  Deterministic gap search  •  Honest cost arithmetic  •  No vibes allowed  •  5-axis flavor space  •  ";
+
 export default function LandingPage({ onStart }) {
+  const containerRef = useRef(null);
+  const { scrollYProgress } = useScroll({ target: containerRef, offset: ["start start", "end start"] });
+
+  // Parallax layers at different depths
+  const headlineY = useParallax(scrollYProgress, [0, -90]);
+  const subY      = useParallax(scrollYProgress, [0, -55]);
+  const badgeY    = useParallax(scrollYProgress, [0, -35]);
+  const icon1Y    = useParallax(scrollYProgress, [0, -160]); // closest, fastest
+  const icon2Y    = useParallax(scrollYProgress, [0, -60]);  // furthest, slowest
+  const icon3Y    = useParallax(scrollYProgress, [0, -110]); // mid
+  const heroBgY   = useParallax(scrollYProgress, [0, -20]);  // very subtle bg drift
+
   return (
-    <div className="landing">
-      {/* Hero */}
-      <motion.section className="landing-hero" variants={containerVariants} initial="hidden" animate="visible">
-        <motion.div animate={floatLoop(0)} className="landing-float" style={{ top: 40, left: "8%" }}>
-          <Sparkles size={40} />
+    <div className="landing" ref={containerRef}>
+
+      {/* ── Hero ── */}
+      <section className="landing-hero">
+        {/* Parallax background dot grid drift */}
+        <motion.div className="landing-hero-bg" style={{ y: heroBgY }} aria-hidden />
+
+        {/* Floating icons at three different parallax depths */}
+        <motion.div
+          className="landing-float"
+          style={{ top: 50, left: "7%", y: icon1Y }}
+          animate={{ rotate: [0, 8, -8, 0] }}
+          transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+        >
+          <Sparkles size={42} />
         </motion.div>
-        <motion.div animate={floatLoop(0.6)} className="landing-float" style={{ top: 100, right: "10%" }}>
-          <IceCreamCone size={46} />
+        <motion.div
+          className="landing-float"
+          style={{ top: 90, right: "8%", y: icon2Y }}
+          animate={{ rotate: [0, -6, 6, 0] }}
+          transition={{ duration: 4.2, repeat: Infinity, ease: "easeInOut", delay: 0.6 }}
+        >
+          <IceCreamCone size={48} />
         </motion.div>
-        <motion.div animate={floatLoop(1.1)} className="landing-float" style={{ top: 10, right: "28%" }}>
-          <Coffee size={34} />
+        <motion.div
+          className="landing-float"
+          style={{ top: 14, right: "27%", y: icon3Y }}
+          animate={{ rotate: [0, 5, -5, 0] }}
+          transition={{ duration: 3.8, repeat: Infinity, ease: "easeInOut", delay: 1.1 }}
+        >
+          <Coffee size={36} />
         </motion.div>
 
-        <motion.div variants={itemVariants} className="header-eyebrow landing-badge">
-          ☕ Hey, café owner!
-        </motion.div>
-
-        <motion.h1 variants={itemVariants} className="landing-h1">
-          Stop Guessing. <br />
-          <span className="landing-h1-accent">Start Computing.</span>
-        </motion.h1>
-
-        <motion.p variants={itemVariants} className="landing-sub">
-          It's 7am, the oat milk delivery didn't show, and three drinks on the board can't be made.
-          Palette invents a complete, original drink from exactly what's in the building today —
-          computed, not retrieved.
-        </motion.p>
-
-        <motion.div variants={itemVariants} className="landing-cta-row">
-          <motion.button
-            type="button"
-            className="compute-btn landing-cta"
-            onClick={onStart}
-            whileHover={{ scale: 1.04, rotate: -1 }}
-            whileTap={{ scale: 0.96 }}
+        {/* Content layers — each at a different parallax depth */}
+        <div className="landing-hero-content">
+          <motion.div
+            className="header-eyebrow landing-badge"
+            style={{ y: badgeY }}
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ type: "spring", stiffness: 120, damping: 14 }}
           >
-            <Coffee size={18} /> Start Inventing <ArrowRight size={18} />
-          </motion.button>
-        </motion.div>
-      </motion.section>
+            ☕ Hey, café owner!
+          </motion.div>
 
-      {/* Feature grid — scroll reveal */}
-      <motion.section
-        className="landing-features"
-        initial={{ opacity: 0, y: 40 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, margin: "-80px" }}
-        transition={{ duration: 0.6 }}
-      >
+          <motion.h1
+            className="landing-h1"
+            style={{ y: headlineY }}
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ type: "spring", stiffness: 100, damping: 12, delay: 0.12 }}
+          >
+            Stop Guessing. <br />
+            <span className="landing-h1-accent">
+              Start Computing.
+            </span>
+          </motion.h1>
+
+          <motion.p
+            className="landing-sub"
+            style={{ y: subY }}
+            initial={{ opacity: 0, y: 28 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ type: "spring", stiffness: 90, damping: 14, delay: 0.22 }}
+          >
+            It's 7am, the oat milk delivery didn't show, and three drinks on the board can't be made.
+            Palette invents a complete, original drink from exactly what's in the building today —
+            <span className="landing-sub-accent"> computed, not retrieved.</span>
+          </motion.p>
+
+          <motion.div
+            className="landing-cta-row"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.32, duration: 0.5 }}
+          >
+            <motion.button
+              type="button"
+              className="compute-btn landing-cta"
+              onClick={onStart}
+              whileHover={{ scale: 1.05, rotate: -1 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <Coffee size={18} /> Start Inventing <ArrowRight size={18} />
+            </motion.button>
+          </motion.div>
+
+          {/* Scroll indicator */}
+          <motion.div
+            className="scroll-indicator"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 1.2 }}
+          >
+            <motion.div
+              animate={{ y: [0, 10, 0] }}
+              transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
+            >
+              <ChevronDown size={28} />
+            </motion.div>
+            <span>scroll to explore</span>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ── Marquee strip ── */}
+      <div className="landing-marquee" aria-hidden>
+        <div className="landing-marquee-track">
+          <span>{MARQUEE_TEXT.repeat(4)}</span>
+        </div>
+      </div>
+
+      {/* ── Feature cards — staggered entrance with initial rotation ── */}
+      <section className="landing-features">
         {FEATURES.map((f, i) => (
           <motion.div
             key={f.title}
             className={`refresh-card landing-feature-card landing-feature-card--${f.color}`}
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.45, delay: i * 0.12 }}
-            whileHover={{ y: -8, rotate: 0 }}
+            initial={{ opacity: 0, y: 50, rotate: f.initRotate, scale: 0.92 }}
+            whileInView={{ opacity: 1, y: 0, rotate: 0, scale: 1 }}
+            viewport={{ once: true, margin: "-60px" }}
+            transition={{ type: "spring", stiffness: 130, damping: 16, delay: i * 0.14 }}
+            whileHover={{ y: -10, rotate: f.initRotate * 0.4, scale: 1.02 }}
           >
-            <div className="landing-feature-icon">{f.icon}</div>
+            <motion.div
+              className="landing-feature-icon"
+              whileHover={{ rotate: 360 }}
+              transition={{ duration: 0.6 }}
+            >
+              {f.icon}
+            </motion.div>
             <h3>{f.title}</h3>
             <p>{f.desc}</p>
           </motion.div>
         ))}
-      </motion.section>
+      </section>
 
-      {/* Stats teaser — scroll reveal */}
+      {/* ── Stats box — parallax inner glow + counting numbers ── */}
       <motion.section
         className="landing-stats"
-        initial={{ opacity: 0, scale: 0.94 }}
-        whileInView={{ opacity: 1, scale: 1 }}
-        viewport={{ once: true, margin: "-60px" }}
-        transition={{ duration: 0.5 }}
+        initial={{ opacity: 0, y: 40 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-40px" }}
+        transition={{ type: "spring", stiffness: 90, damping: 18 }}
       >
         <motion.div
           className="landing-stats-glow"
-          animate={{ scale: [1, 1.2, 1] }}
-          transition={{ duration: 4, repeat: Infinity }}
+          animate={{ scale: [1, 1.3, 1], x: [0, 20, 0] }}
+          transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
         />
         <div className="landing-stats-inner">
-          <div className="landing-stats-copy">
+          <motion.div
+            className="landing-stats-copy"
+            initial={{ opacity: 0, x: -30 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ type: "spring", stiffness: 100, damping: 16, delay: 0.1 }}
+          >
             <h2>
               Built on real math, <br /><span className="landing-h1-accent">not vibes.</span>
             </h2>
             <p>Every number on screen is something you can verify by hand.</p>
-          </div>
-          <div className="landing-stats-grid">
+          </motion.div>
+          <motion.div
+            className="landing-stats-grid"
+            initial={{ opacity: 0, x: 30 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ type: "spring", stiffness: 100, damping: 16, delay: 0.18 }}
+          >
             <div className="landing-stat">
-              <div className="landing-stat-value">5</div>
+              <div className="landing-stat-value"><CountUp target={5} /></div>
               <div className="landing-stat-label">Flavor axes tracked</div>
             </div>
             <div className="landing-stat">
-              <div className="landing-stat-value">100%</div>
+              <div className="landing-stat-value"><CountUp target={100} suffix="%" /></div>
               <div className="landing-stat-label">Deterministic gap math</div>
             </div>
             <div className="landing-stat">
               <div className="landing-stat-value">&lt;2s</div>
               <div className="landing-stat-label">Tweak regeneration</div>
             </div>
-          </div>
+          </motion.div>
         </div>
       </motion.section>
 
+      {/* ── Footer CTA ── */}
       <motion.div
         className="landing-footer-cta"
-        initial={{ opacity: 0 }}
-        whileInView={{ opacity: 1 }}
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
-        transition={{ duration: 0.5 }}
+        transition={{ type: "spring", stiffness: 100, damping: 16 }}
       >
         <Lightbulb size={18} />
         <span>Ready when you are.</span>
@@ -158,7 +280,7 @@ export default function LandingPage({ onStart }) {
           type="button"
           className="refresh-btn"
           onClick={onStart}
-          whileHover={{ scale: 1.03 }}
+          whileHover={{ scale: 1.04, rotate: -1 }}
           whileTap={{ scale: 0.96 }}
         >
           Open the workspace <ArrowRight size={15} />
