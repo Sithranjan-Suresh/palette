@@ -6,6 +6,8 @@ import {
   Radar,
   ResponsiveContainer,
 } from "recharts";
+import { motion } from "framer-motion";
+import { Printer, Sparkles, Check } from "lucide-react";
 
 function truncate(text, max) {
   if (!text) return "";
@@ -35,22 +37,31 @@ export default function RecipeCard({ drink, onKeep, isKept }) {
   ];
 
   return (
-    <div className="recipe-ticket">
+    <motion.div
+      key={drink.name}
+      className="recipe-ticket"
+      initial={{ opacity: 0, y: 24, rotate: -1 }}
+      animate={{ opacity: 1, y: 0, rotate: 0 }}
+      transition={{ type: "spring", stiffness: 220, damping: 20 }}
+    >
       <div className="recipe-ticket-header">
         <p className="panel-eyebrow panel-eyebrow--paper">Recipe — 03</p>
         <div className="recipe-ticket-actions">
           {onKeep && (
-            <button
+            <motion.button
               type="button"
               className="keep-btn"
               disabled={isKept}
               onClick={() => onKeep(drink)}
+              whileHover={!isKept ? { scale: 1.04 } : undefined}
+              whileTap={!isKept ? { scale: 0.94 } : undefined}
             >
-              {isKept ? "On your menu" : "+ Add to menu"}
-            </button>
+              {isKept ? <Check size={14} /> : <Sparkles size={14} />}
+              {isKept ? "On your menu" : "Add to menu"}
+            </motion.button>
           )}
           <button type="button" className="print-btn" onClick={() => window.print()}>
-            Print ticket
+            <Printer size={13} /> Print ticket
           </button>
         </div>
       </div>
@@ -102,17 +113,17 @@ export default function RecipeCard({ drink, onKeep, isKept }) {
         <div className="recipe-radar">
           <ResponsiveContainer width="100%" height={190}>
             <RadarChart data={radarData} outerRadius={68}>
-              <PolarGrid stroke="var(--line)" />
+              <PolarGrid stroke="var(--neo-black)" strokeOpacity={0.25} />
               <PolarAngleAxis
                 dataKey="axis"
-                tick={{ fontSize: 10, fill: "var(--paper-ink)", fontFamily: "var(--font-mono)" }}
+                tick={{ fontSize: 10, fill: "var(--ink)", fontFamily: "var(--font-display)", fontWeight: 700 }}
               />
               <PolarRadiusAxis domain={[0, 10]} tick={false} axisLine={false} />
-              <Radar dataKey="value" stroke="var(--accent-brew)" fill="var(--accent-brew)" fillOpacity={0.35} />
+              <Radar dataKey="value" stroke="var(--neo-orange)" fill="var(--neo-orange)" fillOpacity={0.45} strokeWidth={2.5} />
             </RadarChart>
           </ResponsiveContainer>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }

@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { motion } from "framer-motion";
+import { Plus, Coffee, Shuffle } from "lucide-react";
 import TagInput from "./TagInput";
 
 export default function IngredientForm({
@@ -103,9 +105,15 @@ export default function IngredientForm({
           </div>
         ))}
       </div>
-      <button type="button" className="add-btn" onClick={addIngredientRow}>
-        + Add ingredient
-      </button>
+      <motion.button
+        type="button"
+        className="add-btn"
+        onClick={addIngredientRow}
+        whileHover={{ scale: 1.03 }}
+        whileTap={{ scale: 0.96 }}
+      >
+        <Plus size={14} /> Add ingredient
+      </motion.button>
 
       <TagInput
         label="Out of stock"
@@ -136,9 +144,15 @@ export default function IngredientForm({
 
       {error && <p className="form-error">{error}</p>}
 
-      <button type="submit" className="compute-btn" disabled={isLoading || isRefreshing}>
-        {isLoading ? "Computing…" : "Compute drink"}
-      </button>
+      <motion.button
+        type="submit"
+        className="compute-btn"
+        disabled={isLoading || isRefreshing}
+        whileHover={!(isLoading || isRefreshing) ? { scale: 1.02 } : undefined}
+        whileTap={!(isLoading || isRefreshing) ? { scale: 0.97 } : undefined}
+      >
+        <Coffee size={17} /> {isLoading ? "Computing…" : "Compute drink"}
+      </motion.button>
 
       <div className="refresh-divider">
         <span>or</span>
@@ -157,14 +171,16 @@ export default function IngredientForm({
             ))}
           </select>
         </label>
-        <button
+        <motion.button
           type="button"
           className="refresh-btn"
           disabled={isLoading || isRefreshing}
           onClick={handleRefreshClick}
+          whileHover={!(isLoading || isRefreshing) ? { scale: 1.02 } : undefined}
+          whileTap={!(isLoading || isRefreshing) ? { scale: 0.97 } : undefined}
         >
-          {isRefreshing ? "Computing batch…" : "Refresh whole menu"}
-        </button>
+          <Shuffle size={15} /> {isRefreshing ? "Computing batch…" : "Refresh whole menu"}
+        </motion.button>
       </div>
     </form>
   );

@@ -1,9 +1,22 @@
-const DRINK_COLORS = ["#e0651c", "#d4972b", "#c2483b", "#9b6b3c", "#b8862e", "#a14a3e"];
+import { motion } from "framer-motion";
+import { Check, Sparkles } from "lucide-react";
+
+const DRINK_COLORS = ["#ff7a1a", "#5ab8f0", "#ff6fa8", "#6bd66f", "#ffd23f", "#ff5a5a"];
 
 function truncate(text, max) {
   if (!text) return "";
   return text.length > max ? text.slice(0, max - 1) + "…" : text;
 }
+
+const gridVariants = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.08 } },
+};
+
+const cardVariants = {
+  hidden: { opacity: 0, y: 20, scale: 0.95 },
+  visible: { opacity: 1, y: 0, scale: 1, transition: { type: "spring", stiffness: 260, damping: 20 } },
+};
 
 export default function MenuRefreshResults({ items, failedCount, onKeep, keptNames }) {
   if (!items || items.length === 0) return null;
@@ -19,13 +32,19 @@ export default function MenuRefreshResults({ items, failedCount, onKeep, keptNam
         )}
       </div>
 
-      <div className="refresh-grid">
+      <motion.div className="refresh-grid" variants={gridVariants} initial="hidden" animate="visible">
         {items.map((item, i) => {
           const drink = item.drink;
           const color = DRINK_COLORS[i % DRINK_COLORS.length];
           const isKept = keptNames ? keptNames.has(drink.name) : false;
           return (
-            <div className="refresh-card" key={drink.name + i} style={{ borderTopColor: color }}>
+            <motion.div
+              className="refresh-card"
+              key={drink.name + i}
+              style={{ borderTopColor: color }}
+              variants={cardVariants}
+              whileHover={{ y: -4, x: -2 }}
+            >
               <div className="refresh-card-header">
                 <h3>{truncate(drink.name, 42)}</h3>
                 <span className={`temp-badge temp-badge--${drink.flavor.temperature}`}>
@@ -57,20 +76,23 @@ export default function MenuRefreshResults({ items, failedCount, onKeep, keptNam
                   </span>
                 </p>
                 {onKeep && (
-                  <button
+                  <motion.button
                     type="button"
                     className="keep-btn keep-btn--small"
                     disabled={isKept}
                     onClick={() => onKeep(drink)}
+                    whileHover={!isKept ? { scale: 1.06 } : undefined}
+                    whileTap={!isKept ? { scale: 0.92 } : undefined}
                   >
-                    {isKept ? "Kept" : "+ Keep"}
-                  </button>
+                    {isKept ? <Check size={12} /> : <Sparkles size={12} />}
+                    {isKept ? "Kept" : "Keep"}
+                  </motion.button>
                 )}
               </div>
-            </div>
+            </motion.div>
           );
         })}
-      </div>
+      </motion.div>
     </div>
   );
 }

@@ -28,7 +28,7 @@ Palette isn't a chatbot wrapper. The flavor-space gap a new drink should fill is
 
 ## Stack
 
-- **Frontend:** React + Vite, recharts for the flavor map and radar chart
+- **Frontend:** React + Vite, recharts for the flavor map and radar chart, framer-motion for animation, lucide-react for icons. Neo-brutalist visual direction — bold borders, hard offset shadows, bright flat colors — with a few light gamification touches (a "drinks invented" counter, a kept-menu streak, achievement toasts) layered on top of the existing computation, not replacing it.
 - **Backend:** FastAPI, Pydantic
 - **LLM:** [Groq](https://groq.com) (`llama-3.3-70b-versatile`, JSON mode) — chosen for latency, since regeneration on every tweak needs to feel instant
 - No database — the baseline menu is a static seed file; session state lives in the browser

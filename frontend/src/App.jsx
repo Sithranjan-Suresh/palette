@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from "react";
+import { motion } from "framer-motion";
+import { Coffee, Sparkles, IceCreamCone, DollarSign, PartyPopper, Flame } from "lucide-react";
 import "./App.css";
 import IngredientForm from "./components/IngredientForm";
 import FlavorChart from "./components/FlavorChart";
@@ -6,11 +8,13 @@ import RecipeCard from "./components/RecipeCard";
 import TweakControls from "./components/TweakControls";
 import MenuRefreshResults from "./components/MenuRefreshResults";
 import KeptMenuPanel from "./components/KeptMenuPanel";
+import ToastStack from "./components/ToastStack";
 import { fetchBaselineMenu, fetchGapTarget, generateDrink, refreshMenu } from "./api";
 
 const DEBOUNCE_MS = 400;
 const GAP_DEBOUNCE_MS = 350;
 const KEPT_MENU_STORAGE_KEY = "palette_kept_menu";
+const DRINKS_INVENTED_KEY = "palette_drinks_invented";
 
 function drinkToMenuItem(drink) {
   return {
@@ -29,6 +33,27 @@ function loadKeptMenu() {
   }
 }
 
+function loadDrinksInvented() {
+  const raw = localStorage.getItem(DRINKS_INVENTED_KEY);
+  return raw ? parseInt(raw, 10) || 0 : 0;
+}
+
+const headerVariants = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { staggerChildren: 0.12 } },
+};
+
+const headerItem = {
+  hidden: { y: 20, opacity: 0 },
+  visible: { y: 0, opacity: 1, transition: { type: "spring", stiffness: 200, damping: 18 } },
+};
+
+const floatLoop = (delay) => ({
+  y: [-8, 8, -8],
+  rotate: [-4, 4, -4],
+  transition: { duration: 4, repeat: Infinity, ease: "easeInOut", delay },
+});
+
 function App() {
   const [baselineMenu, setBaselineMenu] = useState([]);
   const [generationRequest, setGenerationRequest] = useState(null);
@@ -45,6 +70,8 @@ function App() {
   const [refreshError, setRefreshError] = useState(null);
 
   const [keptMenu, setKeptMenu] = useState(loadKeptMenu);
+  const [drinksInvented, setDrinksInvented] = useState(loadDrinksInvented);
+  const [toasts, setToasts] = useState([]);
 
   const debounceRef = useRef(null);
   const gapDebounceRef = useRef(null);
@@ -63,6 +90,18 @@ function App() {
   useEffect(() => {
     localStorage.setItem(KEPT_MENU_STORAGE_KEY, JSON.stringify(keptMenu));
   }, [keptMenu]);
+
+  useEffect(() => {
+    localStorage.setItem(DRINKS_INVENTED_KEY, String(drinksInvented));
+  }, [drinksInvented]);
+
+  function pushToast(text, Icon) {
+    const id = Date.now() + Math.random();
+    setToasts((prev) => [...prev.slice(-2), { id, text, Icon }]);
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== id));
+    }, 3400);
+  }
 
   function handleStyleConstraintChange(value) {
     setStyleConstraint(value);
@@ -85,6 +124,24 @@ function App() {
         const drink = await generateDrink({ ...request, extra_menu: keptMenu });
         setGeneratedDrink(drink);
         setGenerationRequest(request);
+
+        if (!request.tweak) {
+          setDrinksInvented((prev) => {
+            const next = prev + 1;
+            if (prev === 0) {
+              pushToast("First drink invented!", PartyPopper);
+            }
+            return next;
+          });
+          if (drink.cost_source === "computed") {
+            pushToast(
+              drink.priced_with_reference_data
+                ? "Cost computed (reference prices)"
+                : "Cost computed from your prices",
+              DollarSign
+            );
+          }
+        }
       } catch (err) {
         setError(err.message || "Couldn't generate, try again.");
       } finally {
@@ -116,6 +173,8 @@ function App() {
       const result = await refreshMenu({ ...payload, count: refreshCount, extra_menu: keptMenu });
       setRefreshItems(result.items);
       setRefreshFailedCount(result.failed_count || 0);
+      setDrinksInvented((prev) => prev + result.items.length);
+      pushToast(`${result.items.length} new drinks invented!`, Sparkles);
     } catch (err) {
       setRefreshError(err.message || "Couldn't refresh the menu, try again.");
     } finally {
@@ -126,7 +185,9 @@ function App() {
   function handleKeepDrink(drink) {
     setKeptMenu((prev) => {
       if (prev.some((item) => item.name === drink.name)) return prev;
-      return [...prev, drinkToMenuItem(drink)];
+      const next = [...prev, drinkToMenuItem(drink)];
+      pushToast(`Menu streak: ${next.length}`, Flame);
+      return next;
     });
   }
 
@@ -140,11 +201,45 @@ function App() {
 
   return (
     <div className="app">
-      <header className="app-header">
-        <p className="header-eyebrow">Flavor-space engine for cafés</p>
-        <h1>Palette</h1>
-        <p className="tagline">It doesn't look up a recipe. It computes one.</p>
-      </header>
+      <ToastStack toasts={toasts} />
+
+      <motion.header
+        className="app-header"
+        variants={headerVariants}
+        initial="hidden"
+        animate="visible"
+      >
+        <motion.div animate={floatLoop(0)} className="header-float" style={{ top: -6, left: "62%" }}>
+          <Coffee size={30} />
+        </motion.div>
+        <motion.div animate={floatLoop(0.7)} className="header-float" style={{ top: 18, left: "78%" }}>
+          <IceCreamCone size={24} />
+        </motion.div>
+        <motion.div animate={floatLoop(1.3)} className="header-float" style={{ top: -2, left: "70%" }}>
+          <Sparkles size={20} />
+        </motion.div>
+
+        <motion.p variants={headerItem} className="header-eyebrow">
+          ☕ Flavor-space engine for cafés
+        </motion.p>
+        <motion.h1 variants={headerItem}>Palette</motion.h1>
+        <motion.p variants={headerItem} className="tagline">
+          It doesn't look up a recipe. It computes one.
+        </motion.p>
+
+        <motion.div variants={headerItem} className="stats-bar">
+          <span className="stat-chip stat-chip--orange">
+            <span className="stat-chip-icon"><Coffee size={15} /></span>
+            {drinksInvented} drink{drinksInvented === 1 ? "" : "s"} invented
+          </span>
+          {keptMenu.length > 0 && (
+            <span className="stat-chip stat-chip--green">
+              <span className="stat-chip-icon"><Flame size={15} /></span>
+              {keptMenu.length} on your menu
+            </span>
+          )}
+        </motion.div>
+      </motion.header>
 
       <main>
         <section className="input-section">
@@ -172,10 +267,16 @@ function App() {
             generatedDrinks={refreshDrinks}
             gapTargets={refreshTargets}
           />
-          {isLoading && <p className="loading-indicator">Computing the flavor gap…</p>}
+          {isLoading && (
+            <p className="loading-indicator">
+              Computing the flavor gap
+              <span className="loading-dots"><span /><span /><span /></span>
+            </p>
+          )}
           {isRefreshing && (
             <p className="loading-indicator">
-              Computing {refreshCount} coordinated gaps and drinks…
+              Computing {refreshCount} coordinated gaps and drinks
+              <span className="loading-dots"><span /><span /><span /></span>
             </p>
           )}
           {error && <p className="generation-error">{error}</p>}

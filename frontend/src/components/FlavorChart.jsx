@@ -9,16 +9,16 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-const DRINK_COLORS = ["#e0651c", "#d4972b", "#c2483b", "#9b6b3c", "#b8862e", "#a14a3e"];
+const DRINK_COLORS = ["#ff7a1a", "#5ab8f0", "#ff6fa8", "#6bd66f", "#ffd23f", "#ff5a5a"];
 
 function makeGeneratedDot(color) {
   return function GeneratedDot(props) {
     const { cx, cy } = props;
     if (cx == null || cy == null) return null;
     return (
-      <g>
-        <circle cx={cx} cy={cy} r={11} fill={color} opacity={0.18} className="generated-halo" />
-        <circle cx={cx} cy={cy} r={4.5} fill={color} stroke="var(--paper)" strokeWidth={1.5} />
+      <g style={{ animation: "pop-in 0.45s cubic-bezier(0.34, 1.56, 0.64, 1)" }}>
+        <circle cx={cx} cy={cy} r={11} fill={color} opacity={0.28} className="generated-halo" />
+        <circle cx={cx} cy={cy} r={5} fill={color} stroke="var(--neo-black)" strokeWidth={2} />
       </g>
     );
   };
@@ -27,7 +27,7 @@ function makeGeneratedDot(color) {
 function BaselineDot(props) {
   const { cx, cy } = props;
   if (cx == null || cy == null) return null;
-  return <circle cx={cx} cy={cy} r={4} fill="var(--ink-dim)" />;
+  return <circle cx={cx} cy={cy} r={4.5} fill="var(--ink-dim)" stroke="var(--neo-black)" strokeWidth={1} />;
 }
 
 function KeptDot(props) {
@@ -35,8 +35,8 @@ function KeptDot(props) {
   if (cx == null || cy == null) return null;
   return (
     <g>
-      <circle cx={cx} cy={cy} r={5} fill="none" stroke="var(--accent-acid)" strokeWidth={1.5} />
-      <circle cx={cx} cy={cy} r={1.5} fill="var(--accent-acid)" />
+      <circle cx={cx} cy={cy} r={6} fill="var(--neo-green-soft)" stroke="var(--neo-green)" strokeWidth={2} />
+      <circle cx={cx} cy={cy} r={1.8} fill="var(--neo-black)" />
     </g>
   );
 }
@@ -90,15 +90,16 @@ export default function FlavorChart({
             name="Sweetness"
             domain={[0, 10]}
             ticks={[0, 2, 4, 6, 8, 10]}
-            tick={{ fill: "var(--ink-faint)", fontFamily: "var(--font-mono)", fontSize: 11 }}
-            axisLine={{ stroke: "var(--line)" }}
-            tickLine={{ stroke: "var(--line)" }}
+            tick={{ fill: "var(--ink-dim)", fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 600 }}
+            axisLine={{ stroke: "var(--neo-black)", strokeWidth: 2 }}
+            tickLine={{ stroke: "var(--neo-black)" }}
             label={{
               value: "SWEETNESS →",
               position: "insideBottom",
               offset: -16,
-              fill: "var(--ink-faint)",
-              fontFamily: "var(--font-mono)",
+              fill: "var(--ink-dim)",
+              fontFamily: "var(--font-display)",
+              fontWeight: 700,
               fontSize: 10,
             }}
           />
@@ -108,15 +109,16 @@ export default function FlavorChart({
             name="Body"
             domain={[0, 10]}
             ticks={[0, 2, 4, 6, 8, 10]}
-            tick={{ fill: "var(--ink-faint)", fontFamily: "var(--font-mono)", fontSize: 11 }}
-            axisLine={{ stroke: "var(--line)" }}
-            tickLine={{ stroke: "var(--line)" }}
+            tick={{ fill: "var(--ink-dim)", fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 600 }}
+            axisLine={{ stroke: "var(--neo-black)", strokeWidth: 2 }}
+            tickLine={{ stroke: "var(--neo-black)" }}
             label={{
               value: "BODY →",
               angle: -90,
               position: "insideLeft",
-              fill: "var(--ink-faint)",
-              fontFamily: "var(--font-mono)",
+              fill: "var(--ink-dim)",
+              fontFamily: "var(--font-display)",
+              fontWeight: 700,
               fontSize: 10,
             }}
           />
@@ -129,16 +131,17 @@ export default function FlavorChart({
               x2={t.sweetness_range[1]}
               y1={t.body_range[0]}
               y2={t.body_range[1]}
-              stroke="var(--accent-acid)"
-              strokeDasharray="4 3"
-              fill="var(--accent-acid)"
-              fillOpacity={drinks.length > 0 ? 0.05 : 0.1}
+              stroke="var(--neo-green)"
+              strokeWidth={2}
+              strokeDasharray="6 4"
+              fill="var(--neo-green)"
+              fillOpacity={drinks.length > 0 ? 0.08 : 0.16}
               ifOverflow="extendDomain"
             />
           ))}
 
           <Tooltip
-            cursor={{ strokeDasharray: "3 3", stroke: "var(--line)" }}
+            cursor={{ strokeDasharray: "3 3", stroke: "var(--neo-black)" }}
             content={({ payload }) =>
               payload && payload.length ? (
                 <div className="chart-tooltip">
@@ -173,7 +176,7 @@ export default function FlavorChart({
         {multiMode ? (
           drinks.map((d, i) => (
             <span key={d.name + i}>
-              <i className="legend-dot" style={{ background: DRINK_COLORS[i % DRINK_COLORS.length] }} />
+              <i className="legend-dot" style={{ background: DRINK_COLORS[i % DRINK_COLORS.length], border: "1.5px solid var(--neo-black)" }} />
               {d.name}
             </span>
           ))
