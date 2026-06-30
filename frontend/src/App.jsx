@@ -233,13 +233,13 @@ function App() {
         initial="hidden"
         animate="visible"
       >
-        <motion.div animate={floatLoop(0)} className="header-float" style={{ top: -6, left: "62%" }}>
+        <motion.div animate={floatLoop(0)} className="header-float" style={{ top: -6, right: 220 }}>
           <Coffee size={30} />
         </motion.div>
-        <motion.div animate={floatLoop(0.7)} className="header-float" style={{ top: 18, left: "78%" }}>
+        <motion.div animate={floatLoop(0.7)} className="header-float" style={{ top: 18, right: 80 }}>
           <IceCreamCone size={24} />
         </motion.div>
-        <motion.div animate={floatLoop(1.3)} className="header-float" style={{ top: -2, left: "70%" }}>
+        <motion.div animate={floatLoop(1.3)} className="header-float" style={{ top: -2, right: 150 }}>
           <Sparkles size={20} />
         </motion.div>
 
