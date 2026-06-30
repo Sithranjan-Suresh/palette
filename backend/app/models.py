@@ -29,6 +29,9 @@ class GeneratedDrink(BaseModel):
     steps: list[str]
     tasting_note: str
     estimated_cost: float
+    # Set server-side after generation, never by the LLM (see app/costing.py).
+    # "computed" only when every ratio ingredient had a known real-world price.
+    cost_source: Literal["computed", "estimated"] = "estimated"
 
 
 class AvailableIngredient(BaseModel):

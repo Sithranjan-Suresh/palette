@@ -11,6 +11,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from app.baseline_menu import BASELINE_MENU
+from app.costing import apply_computed_cost
 from app.gap import compute_gap_target, compute_multi_gap_targets
 from app.models import GenerationRequest, MenuItem, MenuRefreshRequest
 from app.prompting import build_generate_prompt, build_menu_refresh_prompt
@@ -69,6 +70,7 @@ def generate(req: GenerationRequest):
                 "detail": "Couldn't generate a drink right now — please try again.",
             },
         )
+    apply_computed_cost(drink, req.available_ingredients)
     return {"drink": drink, "gap_target": target.as_dict()}
 
 
@@ -95,6 +97,7 @@ def menu_refresh(req: MenuRefreshRequest):
         except GenerationFailedError:
             failed_count += 1
             continue
+        apply_computed_cost(drink, req.available_ingredients)
         batch_so_far.append(drink)
         items.append({"drink": drink, "gap_target": target.as_dict()})
 

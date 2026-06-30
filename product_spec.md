@@ -45,9 +45,9 @@
 - Live tweak/regenerate flow updating both chart and recipe
 
 **P1 (strongly improves demo but not blocking):**
-- Printable/styled recipe card visual polish
-- Pre-seeded realistic baseline menu (so chart isn't empty on load)
-- Cost estimate calculation from entered ingredient prices
+- Printable/styled recipe card visual polish — done
+- Pre-seeded realistic baseline menu (so chart isn't empty on load) — done
+- Cost estimate calculation from entered ingredient prices — done (`backend/app/costing.py`): deterministically parses each ratio's quantity and multiplies by the user's entered $/unit; the recipe card labels the result "computed" (from real prices) vs "estimated" (LLM guess, when pricing is incomplete) so the UI is never silently wrong about which one it's showing
 
 **P2 (nice to have, cut first if time is short):**
 - Multiple tweak options beyond one slider/quick-select

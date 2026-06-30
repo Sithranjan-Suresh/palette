@@ -66,7 +66,11 @@ export default function RecipeCard({ drink }) {
           </ol>
 
           <p className="cost-estimate">
-            Estimated cost <strong>${drink.estimated_cost.toFixed(2)}</strong>
+            {drink.cost_source === "computed" ? "Computed cost" : "Estimated cost"}{" "}
+            <strong>${drink.estimated_cost.toFixed(2)}</strong>
+            <span className={`cost-badge cost-badge--${drink.cost_source}`}>
+              {drink.cost_source === "computed" ? "from your prices" : "no prices entered"}
+            </span>
           </p>
         </div>
 

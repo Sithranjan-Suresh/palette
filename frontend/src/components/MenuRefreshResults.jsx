@@ -39,7 +39,12 @@ export default function MenuRefreshResults({ items, failedCount }) {
                   </li>
                 ))}
               </ul>
-              <p className="refresh-cost">${drink.estimated_cost.toFixed(2)}</p>
+              <p className="refresh-cost">
+                ${drink.estimated_cost.toFixed(2)}
+                <span className={`cost-badge cost-badge--${drink.cost_source}`}>
+                  {drink.cost_source === "computed" ? "computed" : "estimated"}
+                </span>
+              </p>
             </div>
           );
         })}
