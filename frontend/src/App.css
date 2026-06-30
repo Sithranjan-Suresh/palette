@@ -6,6 +6,61 @@
   position: relative;
 }
 
+/* ---------- Demo preset strip ---------- */
+
+.demo-presets {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+  padding: 8px 12px;
+  background: var(--neo-yellow-soft);
+  border: 2px solid var(--neo-black);
+  border-radius: 12px;
+  margin-bottom: 4px;
+}
+
+.demo-presets-label {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-dim);
+  white-space: nowrap;
+}
+
+.demo-preset-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  border: 2px solid var(--neo-black);
+  background: var(--neo-orange);
+  color: var(--neo-black);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.74rem;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.demo-preset-btn:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0 var(--neo-black);
+}
+
+.demo-preset-btn:active {
+  transform: translate(2px, 2px);
+  box-shadow: none;
+}
+
+.demo-preset-btn--blue {
+  background: var(--neo-blue);
+}
+
 /* ---------- Header ---------- */
 
 .app-header {

@@ -1,7 +1,39 @@
 import { useState } from "react";
-import { motion } from "framer-motion";
-import { Plus, Coffee, Shuffle } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Plus, Coffee, Shuffle, Zap } from "lucide-react";
 import TagInput from "./TagInput";
+
+// Task 6: 7am single-drink demo scenario (exactly from demo_script.md)
+const SINGLE_DEMO = {
+  ingredients: [
+    { name: "espresso", cost: "0.60" },
+    { name: "oat milk", cost: "0.15" },
+    { name: "brown sugar syrup", cost: "0.25" },
+    { name: "cinnamon", cost: "0.05" },
+  ],
+  outOfStock: ["whole milk"],
+  mustUse: ["brown sugar syrup"],
+  styleConstraint: "no dairy, iced only",
+};
+
+// Task 1: Rich batch demo preset — diverse enough to prevent name convergence
+const BATCH_DEMO = {
+  ingredients: [
+    { name: "espresso", cost: "0.60" },
+    { name: "oat milk", cost: "0.15" },
+    { name: "brown sugar syrup", cost: "0.25" },
+    { name: "matcha", cost: "0.45" },
+    { name: "cold brew concentrate", cost: "0.40" },
+    { name: "vanilla syrup", cost: "0.20" },
+    { name: "lemon", cost: "0.25" },
+    { name: "honey", cost: "0.20" },
+    { name: "mint", cost: "0.15" },
+    { name: "cinnamon", cost: "0.05" },
+  ],
+  outOfStock: ["whole milk"],
+  mustUse: [],
+  styleConstraint: "mix of hot and iced",
+};
 
 export default function IngredientForm({
   onSubmit,
@@ -17,6 +49,15 @@ export default function IngredientForm({
   const [mustUse, setMustUse] = useState([]);
   const [styleConstraint, setStyleConstraint] = useState("");
   const [error, setError] = useState("");
+
+  function loadPreset(preset) {
+    setIngredients(preset.ingredients);
+    setOutOfStock(preset.outOfStock);
+    setMustUse(preset.mustUse);
+    setStyleConstraint(preset.styleConstraint);
+    onStyleConstraintChange?.(preset.styleConstraint);
+    setError("");
+  }
 
   function updateIngredient(idx, field, value) {
     setIngredients((prev) =>
@@ -70,10 +111,32 @@ export default function IngredientForm({
     if (payload) onRefresh(payload);
   }
 
+  const isEmpty = ingredients.every((i) => !i.name.trim());
+
   return (
     <form className="console-panel" onSubmit={handleSubmit}>
       <p className="panel-eyebrow">Inputs — 01</p>
       <h2>What's in the building today?</h2>
+
+      {/* Demo preset strip */}
+      <AnimatePresence>
+        {isEmpty && (
+          <motion.div
+            className="demo-presets"
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+          >
+            <span className="demo-presets-label">Try a scenario:</span>
+            <button type="button" className="demo-preset-btn" onClick={() => loadPreset(SINGLE_DEMO)}>
+              <Coffee size={13} /> 7am oat milk crisis
+            </button>
+            <button type="button" className="demo-preset-btn demo-preset-btn--blue" onClick={() => loadPreset(BATCH_DEMO)}>
+              <Shuffle size={13} /> Full menu refresh
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div className="ingredient-rows">
         {ingredients.map((ing, idx) => (
