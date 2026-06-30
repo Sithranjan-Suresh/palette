@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { Coffee, Sparkles, IceCreamCone, DollarSign, PartyPopper, Flame } from "lucide-react";
 import "./App.css";
 import IngredientForm from "./components/IngredientForm";
@@ -9,7 +9,11 @@ import TweakControls from "./components/TweakControls";
 import MenuRefreshResults from "./components/MenuRefreshResults";
 import KeptMenuPanel from "./components/KeptMenuPanel";
 import ToastStack from "./components/ToastStack";
+import Loader from "./components/Loader";
+import LandingPage from "./components/LandingPage";
 import { fetchBaselineMenu, fetchGapTarget, generateDrink, refreshMenu } from "./api";
+
+const LOADER_DURATION_MS = 2200;
 
 const DEBOUNCE_MS = 400;
 const GAP_DEBOUNCE_MS = 350;
@@ -55,6 +59,14 @@ const floatLoop = (delay) => ({
 });
 
 function App() {
+  const [appLoading, setAppLoading] = useState(true);
+  const [view, setView] = useState("landing");
+
+  useEffect(() => {
+    const timer = setTimeout(() => setAppLoading(false), LOADER_DURATION_MS);
+    return () => clearTimeout(timer);
+  }, []);
+
   const [baselineMenu, setBaselineMenu] = useState([]);
   const [generationRequest, setGenerationRequest] = useState(null);
   const [generatedDrink, setGeneratedDrink] = useState(null);
@@ -199,6 +211,18 @@ function App() {
   const refreshTargets = refreshItems.map((item) => item.gap_target);
   const keptNames = new Set(keptMenu.map((item) => item.name));
 
+  if (appLoading) {
+    return (
+      <AnimatePresence>
+        <Loader />
+      </AnimatePresence>
+    );
+  }
+
+  if (view === "landing") {
+    return <LandingPage onStart={() => setView("app")} />;
+  }
+
   return (
     <div className="app">
       <ToastStack toasts={toasts} />
@@ -222,7 +246,15 @@ function App() {
         <motion.p variants={headerItem} className="header-eyebrow">
           ☕ Flavor-space engine for cafés
         </motion.p>
-        <motion.h1 variants={headerItem}>Palette</motion.h1>
+        <motion.h1
+          variants={headerItem}
+          className="app-title-link"
+          onClick={() => setView("landing")}
+          role="button"
+          tabIndex={0}
+        >
+          Palette
+        </motion.h1>
         <motion.p variants={headerItem} className="tagline">
           It doesn't look up a recipe. It computes one.
         </motion.p>
