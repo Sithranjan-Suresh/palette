@@ -17,8 +17,8 @@ function makeGeneratedDot(color) {
     if (cx == null || cy == null) return null;
     return (
       <g style={{ animation: "pop-in 0.45s cubic-bezier(0.34, 1.56, 0.64, 1)" }}>
-        <circle cx={cx} cy={cy} r={11} fill={color} opacity={0.28} className="generated-halo" />
-        <circle cx={cx} cy={cy} r={5} fill={color} stroke="var(--neo-black)" strokeWidth={2} />
+        <circle cx={cx} cy={cy} r={14} fill={color} opacity={0.28} className="generated-halo" />
+        <circle cx={cx} cy={cy} r={7} fill={color} stroke="var(--neo-black)" strokeWidth={2} />
       </g>
     );
   };
@@ -27,7 +27,7 @@ function makeGeneratedDot(color) {
 function BaselineDot(props) {
   const { cx, cy } = props;
   if (cx == null || cy == null) return null;
-  return <circle cx={cx} cy={cy} r={4.5} fill="var(--ink-dim)" stroke="var(--neo-black)" strokeWidth={1} />;
+  return <circle cx={cx} cy={cy} r={6} fill="var(--ink-dim)" stroke="var(--neo-black)" strokeWidth={1.5} />;
 }
 
 function KeptDot(props) {
@@ -35,8 +35,8 @@ function KeptDot(props) {
   if (cx == null || cy == null) return null;
   return (
     <g>
-      <circle cx={cx} cy={cy} r={6} fill="var(--neo-green-soft)" stroke="var(--neo-green)" strokeWidth={2} />
-      <circle cx={cx} cy={cy} r={1.8} fill="var(--neo-black)" />
+      <circle cx={cx} cy={cy} r={8} fill="var(--neo-green-soft)" stroke="var(--neo-green)" strokeWidth={2.5} />
+      <circle cx={cx} cy={cy} r={2.5} fill="var(--neo-black)" />
     </g>
   );
 }
