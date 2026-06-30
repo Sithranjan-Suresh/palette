@@ -1,5 +1,6 @@
 import json
 
+from app.gap import GapTarget
 from app.models import GenerationRequest, MenuItem
 
 FLAVOR_MODEL_DESCRIPTION = """
@@ -21,6 +22,12 @@ Return strictly a JSON object with this exact shape, no markdown fences, no comm
   "tasting_note": string,
   "estimated_cost": number
 }
+
+Ratio amounts MUST use real, physical bar/kitchen units a barista can act on immediately —
+fluid ounces (oz), milliliters (ml), pumps, teaspoons (tsp), tablespoons (tbsp), shots, dashes,
+or whole counts (e.g. "1 wedge"). NEVER use vague non-physical units like "units", "parts",
+"portions", or unitless numbers. Example of a GOOD amount: "1.5 oz", "2 pumps", "1/4 tsp".
+Example of a BAD amount to avoid: "1.5 units".
 """
 
 
@@ -28,7 +35,9 @@ def _serialize_menu(menu: list[MenuItem]) -> str:
     return json.dumps([m.model_dump() for m in menu], indent=2)
 
 
-def build_generate_prompt(req: GenerationRequest, baseline_menu: list[MenuItem]) -> tuple[str, str]:
+def build_generate_prompt(
+    req: GenerationRequest, baseline_menu: list[MenuItem], gap_target: GapTarget
+) -> tuple[str, str]:
     system_prompt = (
         "You are Palette's flavor-space engine for an independent cafe. "
         "You invent one complete, original drink at a time by computing a position "
@@ -60,12 +69,17 @@ def build_generate_prompt(req: GenerationRequest, baseline_menu: list[MenuItem])
             "and recipe to reflect the tweak, do not invent an unrelated drink."
         )
     else:
+        gap_dict = gap_target.as_dict()
         user_lines.append(
-            "\nStep 1: Identify the most under-served region of the flavor space given "
-            "the baseline menu and constraints above. "
-            "Step 2: Invent one new drink that fills that gap, respecting all constraints "
-            "(must avoid out-of-stock ingredients, must incorporate at least one must-use "
-            "ingredient, must satisfy the style constraint)."
+            "\nA deterministic grid search over the existing menu has already computed the "
+            "most under-served point in flavor space (farthest minimum distance from every "
+            f"existing drink): sweetness={gap_dict['sweetness']}, body={gap_dict['body']} "
+            f"(considering {gap_target.considered} relevant baseline drinks). "
+            f"Your invented drink's sweetness MUST fall within {gap_dict['sweetness_range']} "
+            f"and body MUST fall within {gap_dict['body_range']}. "
+            "Invent one new drink whose flavor coordinates land inside that computed window, "
+            "respecting all constraints (must avoid out-of-stock ingredients, must incorporate "
+            "at least one must-use ingredient, must satisfy the style constraint)."
         )
 
     user_lines.append("\nReturn only the JSON object described in the system prompt.")
@@ -77,6 +91,9 @@ def build_generate_prompt(req: GenerationRequest, baseline_menu: list[MenuItem])
 def build_retry_prompt(user_prompt: str) -> str:
     return (
         user_prompt
-        + "\n\nYour previous response was not valid JSON matching the required schema. "
-        "Return only valid JSON now, with no markdown fences and no commentary."
+        + "\n\nYour previous response was not valid JSON matching the required schema, or "
+        "used non-physical units (like 'units' or 'parts') in a ratio amount. "
+        "Return only valid JSON now, with no markdown fences and no commentary, and make sure "
+        "every ratios[].amount uses a real bar/kitchen unit (oz, ml, pump, tsp, tbsp, shot, dash, "
+        "or a whole count like '1 wedge')."
     )

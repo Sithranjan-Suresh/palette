@@ -8,7 +8,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from pydantic import BaseModel
+
 from app.baseline_menu import BASELINE_MENU
+from app.gap import compute_gap_target
 from app.models import GenerationRequest, MenuItem
 from app.prompting import build_generate_prompt
 from app.validation import GenerationFailedError, generate_validated_drink
@@ -42,9 +45,20 @@ def baseline_menu() -> list[MenuItem]:
     return BASELINE_MENU
 
 
+class GapTargetRequest(BaseModel):
+    style_constraint: str | None = None
+
+
+@app.post("/api/gap-target")
+def gap_target(req: GapTargetRequest):
+    target = compute_gap_target(BASELINE_MENU, req.style_constraint)
+    return target.as_dict()
+
+
 @app.post("/api/generate")
 def generate(req: GenerationRequest):
-    system_prompt, user_prompt = build_generate_prompt(req, BASELINE_MENU)
+    target = compute_gap_target(BASELINE_MENU, req.style_constraint)
+    system_prompt, user_prompt = build_generate_prompt(req, BASELINE_MENU, target)
     try:
         drink = generate_validated_drink(system_prompt, user_prompt)
     except GenerationFailedError:
@@ -55,4 +69,4 @@ def generate(req: GenerationRequest):
                 "detail": "Couldn't generate a drink right now — please try again.",
             },
         )
-    return {"drink": drink}
+    return {"drink": drink, "gap_target": target.as_dict()}
