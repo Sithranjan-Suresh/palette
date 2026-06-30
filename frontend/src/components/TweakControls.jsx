@@ -2,8 +2,8 @@ const TWEAKS = ["less sweet", "more sweet", "more body", "less bitter", "lighter
 
 export default function TweakControls({ onTweak, disabled }) {
   return (
-    <div className="tweak-controls">
-      <h3>Tweak live</h3>
+    <div className="console-panel console-panel--compact">
+      <p className="panel-eyebrow">Tweak — 02</p>
       <div className="tweak-buttons">
         {TWEAKS.map((tweak) => (
           <button

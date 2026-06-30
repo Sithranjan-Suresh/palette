@@ -6,6 +6,16 @@ export async function fetchBaselineMenu() {
   return res.json();
 }
 
+export async function fetchGapTarget(styleConstraint) {
+  const res = await fetch(`${API_BASE_URL}/api/gap-target`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ style_constraint: styleConstraint || null }),
+  });
+  if (!res.ok) throw new Error("Failed to compute gap target");
+  return res.json();
+}
+
 export async function generateDrink(generationRequest) {
   const res = await fetch(`${API_BASE_URL}/api/generate`, {
     method: "POST",

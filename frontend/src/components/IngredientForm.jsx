@@ -1,9 +1,10 @@
 import { useState } from "react";
+import TagInput from "./TagInput";
 
-export default function IngredientForm({ onSubmit, isLoading }) {
+export default function IngredientForm({ onSubmit, onStyleConstraintChange, isLoading }) {
   const [ingredients, setIngredients] = useState([{ name: "", cost: "" }]);
-  const [outOfStock, setOutOfStock] = useState("");
-  const [mustUse, setMustUse] = useState("");
+  const [outOfStock, setOutOfStock] = useState([]);
+  const [mustUse, setMustUse] = useState([]);
   const [styleConstraint, setStyleConstraint] = useState("");
   const [error, setError] = useState("");
 
@@ -21,6 +22,11 @@ export default function IngredientForm({ onSubmit, isLoading }) {
     setIngredients((prev) => prev.filter((_, i) => i !== idx));
   }
 
+  function handleStyleChange(value) {
+    setStyleConstraint(value);
+    onStyleConstraintChange?.(value);
+  }
+
   function handleSubmit(e) {
     e.preventDefault();
     const cleaned = ingredients
@@ -28,7 +34,7 @@ export default function IngredientForm({ onSubmit, isLoading }) {
       .filter((i) => i.name.length > 0);
 
     if (cleaned.length < 2) {
-      setError("Please enter at least 2 ingredients.");
+      setError("Enter at least 2 ingredients to compute a drink.");
       return;
     }
     setError("");
@@ -38,20 +44,15 @@ export default function IngredientForm({ onSubmit, isLoading }) {
         name: i.name,
         cost_per_unit: i.cost ? parseFloat(i.cost) : null,
       })),
-      out_of_stock: outOfStock
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean),
-      must_use: mustUse
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean),
+      out_of_stock: outOfStock,
+      must_use: mustUse,
       style_constraint: styleConstraint.trim() || null,
     });
   }
 
   return (
-    <form className="ingredient-form" onSubmit={handleSubmit}>
+    <form className="console-panel" onSubmit={handleSubmit}>
+      <p className="panel-eyebrow">Inputs — 01</p>
       <h2>What's in the building today?</h2>
 
       <div className="ingredient-rows">
@@ -59,7 +60,7 @@ export default function IngredientForm({ onSubmit, isLoading }) {
           <div className="ingredient-row" key={idx}>
             <input
               type="text"
-              placeholder="Ingredient name"
+              placeholder="Ingredient"
               value={ing.name}
               maxLength={40}
               onChange={(e) => updateIngredient(idx, "name", e.target.value)}
@@ -67,7 +68,7 @@ export default function IngredientForm({ onSubmit, isLoading }) {
             <input
               type="number"
               step="0.01"
-              placeholder="Cost/unit ($)"
+              placeholder="$/unit"
               value={ing.cost}
               onChange={(e) => updateIngredient(idx, "cost", e.target.value)}
             />
@@ -88,43 +89,37 @@ export default function IngredientForm({ onSubmit, isLoading }) {
         + Add ingredient
       </button>
 
-      <label>
-        Out of stock (comma separated)
-        <input
-          type="text"
-          placeholder="e.g. oat milk, vanilla syrup"
-          maxLength={200}
-          value={outOfStock}
-          onChange={(e) => setOutOfStock(e.target.value)}
-        />
-      </label>
+      <TagInput
+        label="Out of stock"
+        placeholder="type and press Enter"
+        tags={outOfStock}
+        onChange={setOutOfStock}
+        tone="danger"
+      />
 
-      <label>
-        Must use (comma separated)
-        <input
-          type="text"
-          placeholder="e.g. brown sugar syrup"
-          maxLength={200}
-          value={mustUse}
-          onChange={(e) => setMustUse(e.target.value)}
-        />
-      </label>
+      <TagInput
+        label="Must use"
+        placeholder="type and press Enter"
+        tags={mustUse}
+        onChange={setMustUse}
+        tone="accent"
+      />
 
-      <label>
+      <label className="field-label">
         Style constraint
         <input
           type="text"
           placeholder="e.g. no dairy, iced only"
           maxLength={120}
           value={styleConstraint}
-          onChange={(e) => setStyleConstraint(e.target.value)}
+          onChange={(e) => handleStyleChange(e.target.value)}
         />
       </label>
 
       {error && <p className="form-error">{error}</p>}
 
-      <button type="submit" className="generate-btn" disabled={isLoading}>
-        {isLoading ? "Computing…" : "Generate drink"}
+      <button type="submit" className="compute-btn" disabled={isLoading}>
+        {isLoading ? "Computing…" : "Compute drink"}
       </button>
     </form>
   );
