@@ -1,4 +1,6 @@
+import asyncio
 import os
+from concurrent.futures import ThreadPoolExecutor
 
 from dotenv import load_dotenv
 
@@ -88,8 +90,11 @@ def generate(req: GenerationRequest):
     return {"drink": drink, "gap_target": target.as_dict()}
 
 
+_executor = ThreadPoolExecutor(max_workers=4)
+
+
 @app.post("/api/menu-refresh")
-def menu_refresh(req: MenuRefreshRequest):
+async def menu_refresh(req: MenuRefreshRequest):
     combined_menu = BASELINE_MENU + req.extra_menu
     targets = compute_multi_gap_targets(combined_menu, req.count, req.style_constraint)
 
@@ -100,23 +105,29 @@ def menu_refresh(req: MenuRefreshRequest):
         style_constraint=req.style_constraint,
     )
 
-    items = []
-    batch_so_far = []
-    failed_count = 0
-    for target in targets:
+    loop = asyncio.get_running_loop()
+
+    def generate_one(target):
+        # batch_so_far diversity prompt is skipped in parallel mode — each target
+        # already spreads spatially via greedy farthest-point search
         system_prompt, user_prompt = build_menu_refresh_prompt(
-            generation_req, combined_menu, target, batch_so_far
+            generation_req, combined_menu, target, []
         )
         try:
             drink = generate_validated_drink(
                 system_prompt, user_prompt, req.out_of_stock, req.must_use
             )
+            apply_computed_cost(drink, req.available_ingredients)
+            return {"drink": drink, "gap_target": target.as_dict()}
         except GenerationFailedError:
-            failed_count += 1
-            continue
-        apply_computed_cost(drink, req.available_ingredients)
-        batch_so_far.append(drink)
-        items.append({"drink": drink, "gap_target": target.as_dict()})
+            return None
+
+    results = await asyncio.gather(
+        *[loop.run_in_executor(_executor, generate_one, t) for t in targets]
+    )
+
+    items = [r for r in results if r is not None]
+    failed_count = len(results) - len(items)
 
     if not items:
         return JSONResponse(
