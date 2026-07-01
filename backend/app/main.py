@@ -17,6 +17,7 @@ from app.costing import apply_computed_cost
 from app.gap import compute_gap_target, compute_multi_gap_targets
 from app.models import GenerationRequest, MenuItem, MenuRefreshRequest
 from app.prompting import build_generate_prompt, build_menu_refresh_prompt
+from app.groq_client import PaletteRateLimitError
 from app.validation import GenerationFailedError, generate_validated_drink
 
 app = FastAPI(title="Palette API")
@@ -78,6 +79,14 @@ def generate(req: GenerationRequest):
         drink = generate_validated_drink(
             system_prompt, user_prompt, req.out_of_stock, req.must_use
         )
+    except PaletteRateLimitError:
+        return JSONResponse(
+            status_code=429,
+            content={
+                "error": "rate_limit",
+                "detail": "Groq daily token limit reached. Resets at midnight UTC — try again then, or upgrade at console.groq.com.",
+            },
+        )
     except GenerationFailedError:
         return JSONResponse(
             status_code=502,
@@ -119,12 +128,23 @@ async def menu_refresh(req: MenuRefreshRequest):
             )
             apply_computed_cost(drink, req.available_ingredients)
             return {"drink": drink, "gap_target": target.as_dict()}
+        except PaletteRateLimitError:
+            return "rate_limit"
         except GenerationFailedError:
             return None
 
     results = await asyncio.gather(
         *[loop.run_in_executor(_executor, generate_one, t) for t in targets]
     )
+
+    if any(r == "rate_limit" for r in results):
+        return JSONResponse(
+            status_code=429,
+            content={
+                "error": "rate_limit",
+                "detail": "Groq daily token limit reached. Resets at midnight UTC — try again then, or upgrade at console.groq.com.",
+            },
+        )
 
     items = [r for r in results if r is not None]
     failed_count = len(results) - len(items)
